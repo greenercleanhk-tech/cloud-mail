@@ -51,6 +51,26 @@ const routes = [
                     menu: true
                 }
             },
+            {
+                path: '/domain',
+                name: 'domain',
+                component: () => import('@/views/domain/index.vue'),
+                meta: {
+                    title: 'domainManagement',
+                    name: 'domain',
+                    menu: true
+                }
+            },
+            {
+                path: '/contacts',
+                name: 'contacts',
+                component: () => import('@/views/contact/index.vue'),
+                meta: {
+                    title: 'contacts',
+                    name: 'contacts',
+                    menu: true
+                }
+            },
         ]
 
     },
