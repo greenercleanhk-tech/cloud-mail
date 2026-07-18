@@ -1,5 +1,9 @@
 {
   "name": "cloud-mail",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "packages": [
+    "mail-worker",
+    "mail-vue"
+  ]
 }
