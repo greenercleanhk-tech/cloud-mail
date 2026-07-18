@@ -494,6 +494,9 @@ function submit() {
   }
 
   if (!isEmail(fullEmail)) {
+    // 調試：顯示實際拼接結果
+    console.warn('submit debug:', { suffixStr, localPart, fullEmail, suffixRaw, suffix: addForm.suffix });
+    alert(`調試：拼接結果是 "${fullEmail}"，格式不正確`);
     ElMessage({
       message: t('notEmailMsg'),
       type: "error",
