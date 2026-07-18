@@ -75,8 +75,18 @@
       </div>
 
     </el-scrollbar>
-    <el-dialog v-model="showAdd" :title="$t('addAccount')">
-      <div class="container">
+    <el-dialog v-model="showAdd" :title="$t('addAccount')" width="520px">
+      <!-- 模式切換 -->
+      <div class="add-mode-toggle" style="margin-bottom:16px;display:flex;gap:8px;align-items:center;">
+        <span style="font-size:13px;color:#666;">{{ $t('addMode') }}：</span>
+        <el-radio-group v-model="addMode" size="small">
+          <el-radio-button value="single">{{ $t('addModeSingle') }}</el-radio-button>
+          <el-radio-button value="batch">{{ $t('addModeBatch') }}</el-radio-button>
+        </el-radio-group>
+      </div>
+
+      <!-- 單一模式 -->
+      <div v-if="addMode === 'single'" class="container">
         <el-input v-model="addForm.email" ref="addRef" type="text" :placeholder="$t('emailAccount')" autocomplete="off">
           <template #append>
             <div @click.stop="openSelect">
@@ -100,9 +110,40 @@
             </div>
           </template>
         </el-input>
-        <el-button class="btn" type="primary" @click="submit" :loading="addLoading"
-        >{{ $t('add') }}
-        </el-button>
+      </div>
+
+      <!-- 批量模式 -->
+      <div v-if="addMode === 'batch'" class="container">
+        <!-- 域名選擇 -->
+        <div style="margin-bottom:8px;">
+          <el-select v-model="addForm.suffix" :placeholder="$t('selectDomain')" style="width:100%">
+            <el-option
+                v-for="item in domainList"
+                :key="item.domainId"
+                :label="item.domain"
+                :value="item"
+            />
+          </el-select>
+        </div>
+        <!-- 批量輸入框 -->
+        <el-input
+            v-model="addForm.batchText"
+            type="textarea"
+            :rows="6"
+            :placeholder="$t('batchEmailPlaceholder')"
+            style="font-family:monospace"
+        />
+        <!-- 預覽 -->
+        <div v-if="batchPreview.length" style="margin-top:8px;font-size:12px;color:#67c23a;line-height:1.6;word-break:break-all;">
+          <div style="color:#999;margin-bottom:4px;">{{ $t('batchPreview') }} ({{ batchPreview.length }}{{ $t('accounts') }}）：</div>
+          <span v-for="(email, i) in batchPreview.slice(0, 10)" :key="i">{{ email }}<br/></span>
+          <span v-if="batchPreview.length > 10" style="color:#999">...{{ $t('andMore', { n: batchPreview.length - 10 }) }}</span>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <el-button class="btn" type="primary" @click="submit" :loading="addLoading">{{ $t('add') }}</el-button>
+        <el-button @click="showAdd = false">{{ $t('cancel') }}</el-button>
       </div>
       <div
           class="add-email-turnstile"
@@ -172,10 +213,27 @@ const botJsError = ref(false)
 let verifyToken = ''
 let verifyErrorCount = 0
 let first = true
+const addMode = ref('single')  // 'single' | 'batch'
 const addForm = reactive({
   email: '',
-  suffix: null  // 完整 domain 對象 {domainId, domain}
+  suffix: null,  // 完整 domain 對象 {domainId, domain}
+  batchText: ''  // 批量模式：一行一個前綴
 })
+
+// 批量模式預覽
+const batchPreview = computed(() => {
+  if (addMode.value !== 'batch' || !addForm.batchText.trim() || !addForm.suffix) return [];
+  const domain = typeof addForm.suffix === 'string'
+    ? addForm.suffix
+    : addForm.suffix?.domain || '';
+  const domainStr = domain.startsWith('@') ? domain : '@' + domain;
+  return addForm.batchText
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s && !s.startsWith('#'))
+    .map(p => p + domainStr)
+    .filter(e => isEmail(e));
+});
 
 // 根據 suffix 字串查找對應的 domainId
 function getDomainIdBySuffix() {
@@ -446,34 +504,57 @@ function getAccountList() {
 
 function submit() {
 
+  // ========== 批量模式 ==========
+  if (addMode.value === 'batch') {
+    const emails = batchPreview.value;
+    if (emails.length === 0) {
+      ElMessage({ message: '請輸入有效的郵箱前綴（一行一個），並選擇域名', type: 'error', plain: true });
+      return;
+    }
+
+    // 驗證turnstile（批量只有一種模式）
+    if (!verifyToken && (settingStore.settings.addEmailVerify === 0 || (settingStore.settings.addEmailVerify === 2 && settingStore.settings.addVerifyOpen))) {
+      triggerVerify();
+      return;
+    }
+
+    addLoading.value = true;
+    let success = 0, failed = 0;
+    for (const fullEmail of emails) {
+      try {
+        const account = await accountAdd(fullEmail, verifyToken, getDomainIdBySuffix());
+        accounts.push(account);
+        success++;
+        settingStore.settings.addVerifyOpen = account.addVerifyOpen;
+      } catch (e) {
+        failed++;
+      }
+      await new Promise(r => setTimeout(r, 500)); // 防流控
+    }
+
+    addLoading.value = false;
+    showAdd.value = false;
+    addForm.batchText = '';
+    verifyToken = '';
+    verifyShow.value = false;
+    userStore.refreshUserInfo();
+    ElMessage({ message: `成功添加 ${success} 個郵箱${failed > 0 ? `，失敗 ${failed} 個` : ''}`, type: "success", plain: true });
+    return;
+  }
+
+  // ========== 單一模式（原有邏輯）==========
   if (!addForm.email) {
-    ElMessage({
-      message: t('emptyEmailMsg'),
-      type: "error",
-      plain: true
-    })
-    return
+    ElMessage({ message: t('emptyEmailMsg'), type: "error", plain: true });
+    return;
   }
 
   if (addForm.email.length < settingStore.settings.minEmailPrefix) {
-    ElMessage({
-      message: t('minEmailPrefix', {msg: settingStore.settings.minEmailPrefix}),
-      type: 'error',
-      plain: true,
-    })
-    return
+    ElMessage({ message: t('minEmailPrefix', {msg: settingStore.settings.minEmailPrefix}), type: 'error', plain: true });
+    return;
   }
 
-  // addForm.suffix 可能是字串（如 "@example.com"）或物件（如 {domainId, domain}）
-  // 統一取值：suffix 可能是字串（如 "@parkin.hk"）或物件（如 {domain: "parkin.hk"}）
-  let suffixRaw = typeof addForm.suffix === 'string'
-      ? addForm.suffix
-      : (addForm.suffix?.domain || '');
-
-  // 確保前綴有 @
+  let suffixRaw = typeof addForm.suffix === 'string' ? addForm.suffix : (addForm.suffix?.domain || '');
   let suffixStr = suffixRaw.startsWith('@') ? suffixRaw : ('@' + suffixRaw);
-
-  // 兜底：若 suffixStr 仍為空，嘗試從 domainStore 取第一個域名
   if (!suffixStr || suffixStr === '@') {
     if (domainStore.domainList.length > 0) {
       const firstDomain = domainStore.domainList[0].domain || '';
@@ -481,84 +562,60 @@ function submit() {
     }
   }
 
-  // 取出用戶輸入中的本地部分（@ 前的內容）
   const atIndex = addForm.email.indexOf('@');
   const localPart = atIndex >= 0 ? addForm.email.substring(0, atIndex) : addForm.email;
-
-  // 拼接：本地部分 + 域名後綴（suffixStr 已有 @）
   const fullEmail = localPart + suffixStr;
 
   if (!suffixStr) {
-    ElMessage({ message: '請先在「域名管理」中添加並啟用域名', type: 'error', plain: true });
+    ElMessage({ message: '請先選擇域名', type: 'error', plain: true });
     return;
   }
 
   if (!isEmail(fullEmail)) {
-    // 調試：顯示實際拼接結果
-    console.warn('submit debug:', { suffixStr, localPart, fullEmail, suffixRaw, suffix: addForm.suffix });
-    alert(`調試：拼接結果是 "${fullEmail}"，格式不正確`);
-    ElMessage({
-      message: t('notEmailMsg'),
-      type: "error",
-      plain: true
-    })
-    return
-  }
-
-  if (!verifyToken && (settingStore.settings.addEmailVerify === 0 || (settingStore.settings.addEmailVerify === 2 && settingStore.settings.addVerifyOpen))) {
-    if (!verifyShow.value) {
-      verifyShow.value = true
-      nextTick(() => {
-        if (!turnstileId) {
-          try {
-            turnstileId = window.turnstile.render('.add-email-turnstile')
-          } catch (e) {
-            botJsError.value = true
-            console.log('人机验证js加载失败')
-          }
-        } else {
-          window.turnstile.reset('.add-email-turnstile')
-        }
-      })
-    } else if (!botJsError.value) {
-      ElMessage({
-        message: t('botVerifyMsg'),
-        type: "error",
-        plain: true
-      })
-    }
+    ElMessage({ message: t('notEmailMsg'), type: "error", plain: true });
     return;
   }
 
-  addLoading.value = true
+  if (!verifyToken && (settingStore.settings.addEmailVerify === 0 || (settingStore.settings.addEmailVerify === 2 && settingStore.settings.addVerifyOpen))) {
+    triggerVerify();
+    return;
+  }
+
+  addLoading.value = true;
   accountAdd(fullEmail, verifyToken, getDomainIdBySuffix()).then(account => {
-    addLoading.value = false
-    showAdd.value = false
-    addForm.email = ''
-    accounts.push(account)
-    verifyToken = ''
-    settingStore.settings.addVerifyOpen = account.addVerifyOpen
-    ElMessage({
-      message: t('addSuccessMsg'),
-      type: "success",
-      plain: true
-    })
-    verifyShow.value = false
-    userStore.refreshUserInfo()
+    addLoading.value = false;
+    showAdd.value = false;
+    addForm.email = '';
+    accounts.push(account);
+    verifyToken = '';
+    settingStore.settings.addVerifyOpen = account.addVerifyOpen;
+    ElMessage({ message: t('addSuccessMsg'), type: "success", plain: true });
+    verifyShow.value = false;
+    userStore.refreshUserInfo();
   }).catch(res => {
     if (res.code === 400) {
-      verifyToken = ''
-      if (turnstileId) {
-        window.turnstile.reset(turnstileId)
-      } else {
-        nextTick(() => {
-          turnstileId = window.turnstile.render('.add-email-turnstile')
-        })
-      }
-      verifyShow.value = true
+      verifyToken = '';
+      nextTick(() => { turnstileId = window.turnstile.render('.add-email-turnstile'); });
+      verifyShow.value = true;
     }
-    addLoading.value = false
-  })
+    addLoading.value = false;
+  });
+}
+
+function triggerVerify() {
+  if (!verifyShow.value) {
+    verifyShow.value = true;
+    nextTick(() => {
+      if (!turnstileId) {
+        try { turnstileId = window.turnstile.render('.add-email-turnstile'); }
+        catch (e) { botJsError.value = true; }
+      } else {
+        window.turnstile.reset('.add-email-turnstile');
+      }
+    });
+  } else if (!botJsError.value) {
+    ElMessage({ message: t('botVerifyMsg'), type: "error", plain: true });
+  }
 }
 </script>
 <style>
