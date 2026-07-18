@@ -84,6 +84,7 @@ import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
 import {useDomainStore} from "@/store/domain.js";
 import {emailSend} from "@/request/email.js";
+import {accountList} from "@/request/account.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
@@ -459,19 +460,35 @@ function formatImage(content) {
   return content.replace(/{{domain}}/g, toOssDomain(domain) + '/');
 }
 
-function open() {
+async function open() {
   const currentDomainId = domainStore.currentDomainId;
-  const currentAccount = accountStore.currentAccount;
 
-  // 如果當前賬號不存在，或所屬域名與當前域名不一致，則使用 userStore 的默認賬號
-  if (!currentAccount || !currentAccount.email || currentAccount.domainId !== currentDomainId) {
+  // 從當前域名下的所有帳號中隨機選一個作為發件人
+  if (currentDomainId) {
+    try {
+      const domainAccounts = await accountList(0, 30, null, currentDomainId);
+      if (domainAccounts && domainAccounts.length > 0) {
+        const randomAccount = domainAccounts[Math.floor(Math.random() * domainAccounts.length)];
+        form.sendEmail = randomAccount.email;
+        form.accountId = randomAccount.accountId;
+        form.name = randomAccount.name;
+      } else {
+        // 該域名下沒有帳號，回退到 userStore 默認
+        form.sendEmail = userStore.user.email;
+        form.accountId = userStore.user.account.accountId;
+        form.name = userStore.user.name;
+      }
+    } catch {
+      // API 失敗，回退到 userStore 默認
+      form.sendEmail = userStore.user.email;
+      form.accountId = userStore.user.account.accountId;
+      form.name = userStore.user.name;
+    }
+  } else {
+    // 沒有選擇域名，使用 userStore 默認
     form.sendEmail = userStore.user.email;
     form.accountId = userStore.user.account.accountId;
     form.name = userStore.user.name;
-  } else {
-    form.sendEmail = currentAccount.email;
-    form.accountId = currentAccount.accountId;
-    form.name = currentAccount.name;
   }
   show.value = true;
   editor.value.focus()

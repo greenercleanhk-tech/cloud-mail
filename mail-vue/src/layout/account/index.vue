@@ -206,7 +206,7 @@ watch(() => settingStore.domainList, (list) => {
 watch(() => domainStore.currentDomainId, (newDomainId) => {
   if (newDomainId) {
     accountStore.currentAccountId = 0;
-    accountStore.currentAccount = {};
+    accountStore.currentAccount = null;
     accounts.length = 0;
     noLoading.value = false;
     getAccountList();
@@ -464,7 +464,7 @@ function submit() {
     return
   }
 
-  if (!isEmail(addForm.email + addForm.suffix)) {
+  if (!isEmail(addForm.email + '@' + addForm.suffix.domain)) {
     ElMessage({
       message: t('notEmailMsg'),
       type: "error",
