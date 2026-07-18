@@ -140,7 +140,7 @@
           <el-input v-model="templateForm.subject" :placeholder="$t('subjectPlaceholder')" />
         </el-form-item>
         <el-form-item :label="$t('content')">
-          <tinyEditor :def-value="templateForm.content" ref="templateEditor" @change="onTemplateContentChange" />
+          <tinyEditor :def-value="templateForm.content" ref="templateEditor" @change="onTemplateContentChange" style="height: 320px; display: block" />
         </el-form-item>
       </el-form>
       <template #footer>
