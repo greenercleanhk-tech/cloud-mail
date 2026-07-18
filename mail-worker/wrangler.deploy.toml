@@ -1,0 +1,28 @@
+name = "cloud-mail"
+main = "src/index.js"
+compatibility_date = "2025-06-04"
+keep_vars = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "db"
+database_name = "cloud-mail"
+database_id = "c05b2cc3-fffa-422f-a087-22090f51d39c"
+
+[[kv_namespaces]]
+binding = "kv"
+id = "e9721d9b433e440684fbdb54d3d095dd"
+
+[ai]
+binding = "ai"
+
+[assets]
+binding = "assets"
+directory = "./dist"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+[triggers]
+crons = ["0 16 * * *"]
