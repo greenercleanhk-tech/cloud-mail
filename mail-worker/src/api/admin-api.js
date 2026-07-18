@@ -1,11 +1,8 @@
 import app from '../hono/hono';
 import result from '../model/result';
-import loginService from '../service/login-service';
 import JwtUtils from '../utils/jwt-utils';
 import KvConst from '../const/kv-const';
 import constant from '../const/constant';
-import jwtUtils from '../utils/jwt-utils';
-import securityConst from '../const/constant';
 
 app.post('/admin/login', async (c) => {
 	const { email, password } = await c.req.json();
@@ -26,11 +23,14 @@ app.post('/admin/login', async (c) => {
 // Debug: 測試 auth header 是否正確傳入
 app.get('/admin/debug-headers', async (c) => {
 	const auth = c.req.header('Authorization');
-	const jwtResult = auth ? await jwtUtils.verifyToken(c, auth) : null;
+	const rawToken = auth ? auth.replace('Bearer ', '') : null;
+	const jwtResult = rawToken ? await JwtUtils.verifyToken(c, rawToken) : null;
 	const kvKey = 'auth-uid:1';
 	const kvData = await c.env.kv.get(kvKey, { type: 'json' });
 	return c.json(result.ok({
 		authHeader: auth ? auth.substring(0, 30) + '...' : 'null',
+		rawToken: rawToken ? rawToken.substring(0, 30) + '...' : 'null',
+		jwtSecret: c.env.jwt_secret ? c.env.jwt_secret.substring(0, 10) + '...' : 'MISSING',
 		jwtPayload: jwtResult,
 		kvKey,
 		kvData: kvData ? JSON.stringify(kvData).substring(0, 100) : 'null'
