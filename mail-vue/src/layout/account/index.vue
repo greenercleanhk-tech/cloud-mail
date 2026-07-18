@@ -422,6 +422,7 @@ function getAccountList() {
     }
     if (accounts.length === 0) {
       accountStore.currentAccount = list[0]
+      accountStore.currentAccountId = list[0].accountId
     }
 
     accounts.push(...list)

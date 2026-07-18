@@ -57,11 +57,15 @@ onMounted(() => {
 
 
 watch(() => accountStore.currentAccountId, () => {
+  // currentAccountId === 0 表示正在自動選賬號中，還沒選好，不刷新
+  if (accountStore.currentAccountId === 0) return;
   scroll.value.refreshList();
 })
 
 watch(() => domainStore.currentDomainId, () => {
-  scroll.value.refreshList();
+  // 域名切換時重置 account，強制 account layout 重新選擇該域名的賬號
+  accountStore.currentAccountId = 0;
+  accountStore.currentAccount = {};
 })
 
 function changeTimeSort() {

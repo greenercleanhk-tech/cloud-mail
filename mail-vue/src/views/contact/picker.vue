@@ -35,7 +35,12 @@
       </div>
 
       <!-- 聯絡人列表 -->
-      <div class="section-title">{{ $t('contacts') }}</div>
+      <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>{{ $t('contacts') }}</span>
+        <el-button v-if="selectedGroupId" size="small" link type="primary" @click="toggleSelectGroup">
+          {{ isGroupFullySelected ? '取消全選' : '全選本組' }}
+        </el-button>
+      </div>
       <el-scrollbar style="height: calc(100vh - 320px)">
         <div class="contact-list">
           <div
@@ -83,7 +88,7 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { Icon } from '@iconify/vue';
 import { useDomainStore } from '@/store/domain.js';
 import { contactList, groupList } from '@/request/contact.js';
@@ -161,9 +166,52 @@ function handleSearch() {
   loadContacts();
 }
 
-function selectGroup(groupId) {
-  selectedGroupId.value = selectedGroupId.value === groupId ? 0 : groupId;
-  loadContacts();
+async function selectGroup(groupId) {
+  const newGroupId = selectedGroupId.value === groupId ? 0 : groupId;
+  // 取消選組時，清除該組所有聯絡人的選擇
+  if (newGroupId === 0) {
+    const oldGroupContacts = contacts.value.filter(c => c.groupId === selectedGroupId.value);
+    selectedContacts.value = selectedContacts.value.filter(
+      c => !oldGroupContacts.some(gc => gc.contactId === c.contactId)
+    );
+  }
+  selectedGroupId.value = newGroupId;
+  await loadContacts();
+  // 自動全選該組
+  if (newGroupId !== 0) {
+    contacts.value
+      .filter(c => c.groupId === newGroupId)
+      .forEach(c => {
+        if (!selectedContacts.value.some(x => x.contactId === c.contactId)) {
+          selectedContacts.value.push(c);
+        }
+      });
+  }
+}
+
+const isGroupFullySelected = computed(() => {
+  if (!selectedGroupId.value || contacts.value.length === 0) return false;
+  return contacts.value
+    .filter(c => c.groupId === selectedGroupId.value)
+    .every(c => selectedContacts.value.some(x => x.contactId === c.contactId));
+});
+
+function toggleSelectGroup() {
+  if (isGroupFullySelected.value) {
+    // 取消全選：移除該組所有聯絡人
+    selectedContacts.value = selectedContacts.value.filter(
+      c => c.groupId !== selectedGroupId.value
+    );
+  } else {
+    // 全選：添加該組所有聯絡人
+    contacts.value
+      .filter(c => c.groupId === selectedGroupId.value)
+      .forEach(c => {
+        if (!selectedContacts.value.some(x => x.contactId === c.contactId)) {
+          selectedContacts.value.push(c);
+        }
+      });
+  }
 }
 
 function isSelected(c) {
