@@ -4,8 +4,8 @@ export function accountList(accountId, size, lastSort, domainId) {
     return http.get('/account/list', {params: {accountId, size, lastSort, domainId}});
 }
 
-export function accountAdd(email,token) {
-    return http.post('/account/add', {email,token})
+export function accountAdd(email, token, domainId) {
+    return http.post('/account/add', {email, token, domainId})
 }
 
 export function accountSetName(accountId,name) {

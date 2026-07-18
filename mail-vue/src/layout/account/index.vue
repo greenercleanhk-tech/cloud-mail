@@ -88,13 +88,13 @@
               >
                 <el-option
                     v-for="item in domainList"
-                    :key="item"
-                    :label="item"
+                    :key="item.domainId"
+                    :label="item.domain"
                     :value="item"
                 />
               </el-select>
               <div>
-                <span>{{ addForm.suffix }}</span>
+                <span>{{ addForm.suffix?.domain }}</span>
                 <Icon class="setting-icon" icon="mingcute:down-small-fill" width="20" height="20"/>
               </div>
             </div>
@@ -174,8 +174,13 @@ let verifyErrorCount = 0
 let first = true
 const addForm = reactive({
   email: '',
-  suffix: settingStore.domainList[0]
+  suffix: null  // 完整 domain 對象 {domainId, domain}
 })
+
+// 根據 suffix 字串查找對應的 domainId
+function getDomainIdBySuffix() {
+  return addForm.suffix?.domainId || domainStore.currentDomainId;
+}
 let skeletonRows = 10
 const queryParams = {
   size: 30
@@ -193,7 +198,7 @@ watch(() => accountStore.changeUserAccountName, () => {
 
 watch(() => settingStore.domainList, (list) => {
   if (!addForm.suffix && list.length > 0) {
-    addForm.suffix = list[0]
+    addForm.suffix = list[0]  // 完整 domain 對象
   }
 }, {immediate: true})
 
@@ -494,7 +499,7 @@ function submit() {
   }
 
   addLoading.value = true
-  accountAdd(addForm.email + addForm.suffix, verifyToken).then(account => {
+  accountAdd(addForm.email + addForm.suffix.domain, verifyToken, getDomainIdBySuffix()).then(account => {
     addLoading.value = false
     showAdd.value = false
     addForm.email = ''

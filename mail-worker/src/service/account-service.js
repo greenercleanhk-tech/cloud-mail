@@ -12,6 +12,7 @@ import turnstileService from './turnstile-service';
 import roleService from './role-service';
 import { t } from '../i18n/i18n';
 import verifyRecordService from './verify-record-service';
+import domainService from './domain-service.js';
 
 const accountService = {
 
@@ -19,7 +20,7 @@ const accountService = {
 
 		const { addEmailVerify , addEmail, manyEmail, addVerifyCount, minEmailPrefix, emailPrefixFilter } = await settingService.query(c);
 
-		let { email, token } = params;
+		let { email, token, domainId } = params;
 
 
 		if (!(addEmail === settingConst.addEmail.OPEN && manyEmail === settingConst.manyEmail.OPEN)) {
@@ -37,6 +38,12 @@ const accountService = {
 
 		if (!c.env.domain.includes(emailUtils.getDomain(email))) {
 			throw new BizError(t('notExistDomain'));
+		}
+
+		// 如果未傳 domainId，則根據郵箱域名自動查找
+		if (!domainId) {
+			const domainRow = await domainService.getByDomain(c, emailUtils.getDomain(email));
+			domainId = domainRow ? domainRow.domainId : 1;
 		}
 
 		if (emailUtils.getName(email).length < minEmailPrefix) {
@@ -88,7 +95,7 @@ const accountService = {
 		}
 
 
-		accountRow = await orm(c).insert(account).values({ email: email, userId: userId, name: emailUtils.getName(email) }).returning().get();
+		accountRow = await orm(c).insert(account).values({ email: email, userId: userId, name: emailUtils.getName(email), domainId }).returning().get();
 
 		if (addEmailVerify === settingConst.addEmailVerify.COUNT && !addVerifyOpen) {
 			const row = await verifyRecordService.increaseAddCount(c);
@@ -103,9 +110,9 @@ const accountService = {
 		return orm(c).select().from(account).where(sql`${account.email} COLLATE NOCASE = ${email}`).get();
 	},
 
-	list(c, params, userId) {
+		list(c, params, userId) {
 
-		let { accountId, size, lastSort } = params;
+		let { accountId, size, lastSort, domainId } = params;
 
 		accountId = Number(accountId);
 		size = Number(size);
@@ -119,22 +126,28 @@ const accountService = {
 			accountId = 0;
 		}
 
-		if(Number.isNaN(lastSort)) {
+		if (Number.isNaN(lastSort)) {
 			lastSort = 9999999999;
 		}
 
-		return orm(c).select().from(account).where(
-			and(
-				eq(account.userId, userId),
-				eq(account.isDel, isDel.NORMAL),
-					or(
-						lt(account.sort, lastSort),
-						and(
-							eq(account.sort, lastSort),
-							gt(account.accountId, accountId)
-						)
-					))
+		const conditions = [
+			eq(account.userId, userId),
+			eq(account.isDel, isDel.NORMAL),
+			or(
+				lt(account.sort, lastSort),
+				and(
+					eq(account.sort, lastSort),
+					gt(account.accountId, accountId)
 				)
+			)
+		];
+
+		// 按域名過濾（多域名支持）
+		if (domainId) {
+			conditions.push(eq(account.domainId, Number(domainId)));
+		}
+
+		return orm(c).select().from(account).where(and(...conditions))
 			.orderBy(desc(account.sort), asc(account.accountId))
 			.limit(size)
 			.all();
