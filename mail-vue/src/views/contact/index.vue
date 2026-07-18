@@ -12,6 +12,10 @@
           <Icon icon="carbon:add" />
           {{ $t('addContact') }}
         </el-button>
+        <el-button type="success" @click="showImportDialog = true">
+          <Icon icon="carbon:document-import" />
+          {{ $t('importCsv') }}
+        </el-button>
       </div>
     </div>
 
@@ -142,6 +146,62 @@
         <el-button @click="showGroupDialog = false">{{ $t('close') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- CSV 批量導入對話框 -->
+    <el-dialog v-model="showImportDialog" :title="$t('importCsv')" width="620px">
+      <!-- 第一步：選擇群組 -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-size:13px;color:#666;margin-bottom:6px;">{{ $t('assignGroup') }}</div>
+        <el-select v-model="importForm.groupId" style="width: 100%;">
+          <el-option :value="0" :label="$t('noGroup')" />
+          <el-option v-for="g in groups" :key="g.groupId" :value="g.groupId" :label="g.name" />
+        </el-select>
+      </div>
+
+      <!-- 第二步：上傳 CSV -->
+      <div style="margin-bottom: 12px;">
+        <el-upload
+          ref="uploadRef"
+          :auto-upload="false"
+          :limit="1"
+          accept=".csv"
+          :on-change="handleFileChange"
+          :on-remove="handleFileRemove"
+          drag
+        >
+          <Icon icon="carbon:document-csv" width="40" height="40" style="color:#67c23a;" />
+          <div style="font-size:13px;color:#666;margin-top:8px;">{{ $t('csvUploadTip') }}</div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">{{ $t('csvFormatTip') }}</div>
+        </el-upload>
+      </div>
+
+      <!-- 第三步：預覽 -->
+      <div v-if="importPreview.length" style="margin-top:12px;">
+        <div style="font-size:13px;color:#666;margin-bottom:6px;">
+          {{ $t('importPreview') }} ({{ importPreview.length }}{{ $t('contacts') }})：
+        </div>
+        <el-table :data="importPreview" stripe size="small" max-height="200" style="font-size:12px;">
+          <el-table-column prop="name" :label="$t('name')" min-width="100" show-overflow-tooltip />
+          <el-table-column prop="email" :label="$t('email')" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="remark" :label="$t('remark')" min-width="120" show-overflow-tooltip />
+        </el-table>
+        <div v-if="importInvalidCount > 0" style="margin-top:6px;font-size:12px;color:#f56c6c;">
+          ⚠️ {{ $t('invalidRows', { n: importInvalidCount }) }}
+        </div>
+      </div>
+
+      <template #footer>
+        <el-button @click="showImportDialog = false">{{ $t('cancel') }}</el-button>
+        <el-button
+          type="success"
+          @click="handleImport"
+          :loading="importLoading"
+          :disabled="importPreview.length === 0"
+        >
+          {{ $t('confirmImport') }} ({{ importPreview.length }})
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -151,7 +211,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
 import { useDomainStore } from '@/store/domain.js';
 import {
-  contactList, contactAdd, contactUpdate, contactDelete,
+  contactList, contactAdd, contactUpdate, contactDelete, contactBatchAdd,
   groupList, groupAdd, groupUpdate, groupDelete
 } from '@/request/contact.js';
 
@@ -170,6 +230,15 @@ const showAddDialog = ref(false);
 const showGroupDialog = ref(false);
 const editingContact = ref(null);
 const newGroupName = ref('');
+const showImportDialog = ref(false);
+const importLoading = ref(false);
+const uploadRef = ref();
+const importPreview = ref([]);
+const importInvalidCount = ref(0);
+const importForm = reactive({
+  groupId: 0,
+  rawContacts: []
+});
 
 const formData = reactive({
   name: '',
@@ -315,6 +384,103 @@ function getGroupName(groupId) {
   if (!groupId || groupId === 0) return '—';
   const g = groups.value.find(x => x.groupId === groupId);
   return g ? g.name : '—';
+}
+
+// ========== CSV 導入 ==========
+function handleFileChange(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length === 0) return;
+
+    // 嘗試解析 CSV
+    const rows = lines.map(line => {
+      // 簡單 CSV 解析：split by comma, handle quoted fields
+      const cells = [];
+      let current = '';
+      let inQuote = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          inQuote = !inQuote;
+        } else if (ch === ',' && !inQuote) {
+          cells.push(current.trim());
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      cells.push(current.trim());
+      return cells;
+    });
+
+    // 檢測第一行是否為標題
+    let dataRows = rows;
+    const first = rows[0];
+    const hasHeader = first.length >= 2 &&
+      (first[0].toLowerCase().includes('name') || first[0].toLowerCase().includes('名')) ||
+      (first[1].toLowerCase().includes('email') || first[1].toLowerCase().includes('郵箱'));
+    if (hasHeader) {
+      dataRows = rows.slice(1);
+    }
+
+    const parsed = [];
+    let invalid = 0;
+    for (const cells of dataRows) {
+      if (!cells[1] || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cells[1])) {
+        invalid++;
+        continue;
+      }
+      parsed.push({
+        name: cells[0] || '',
+        email: cells[1],
+        remark: cells[2] || '',
+        groupId: importForm.groupId
+      });
+    }
+
+    importForm.rawContacts = parsed;
+    importPreview.value = parsed.slice(0, 20);
+    importInvalidCount.value = invalid;
+  };
+  reader.readAsText(file.rawFile, 'UTF-8');
+}
+
+function handleFileRemove() {
+  importPreview.value = [];
+  importInvalidCount.value = 0;
+  importForm.rawContacts = [];
+}
+
+async function handleImport() {
+  if (!importForm.rawContacts.length) return;
+  importLoading.value = true;
+  try {
+    // 全部應用同一個 groupId
+    const contacts = importForm.rawContacts.map(c => ({
+      name: c.name,
+      email: c.email,
+      remark: c.remark,
+      groupId: importForm.groupId
+    }));
+    await contactBatchAdd({
+      contacts,
+      domainId: domainStore.currentDomainId
+    });
+    ElMessage.success(`成功導入 ${contacts.length} 個聯絡人`);
+    showImportDialog.value = false;
+    importPreview.value = [];
+    importInvalidCount.value = 0;
+    importForm.rawContacts = [];
+    uploadRef.value?.clearFiles();
+    loadContacts();
+    loadGroups();
+  } catch (e) {
+    ElMessage.error(e.message || '導入失敗');
+  } finally {
+    importLoading.value = false;
+  }
 }
 
 function resetForm() {
