@@ -146,14 +146,14 @@ const attService = {
 		return { imageDataList, html: document.toString() };
 	},
 
-	async saveSendAtt(c, attList, userId, accountId, emailId) {
+	async saveSendAtt(c, attList, userId, accountId, domainId, emailId) {
 
 		const attDataList = [];
 
 		for (let att of attList) {
 			att.buff = fileUtils.base64ToUint8Array(att.content);
 			att.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(att.buff) + fileUtils.getExtFileName(att.filename);
-			const attData = { userId, accountId, emailId };
+			const attData = { userId, accountId, domainId, emailId };
 			attData.key = att.key;
 			attData.size = att.buff.length;
 			attData.filename = att.filename;
@@ -173,12 +173,13 @@ const attService = {
 
 	},
 
-	async saveArticleAtt(c, attDataList, userId, accountId, emailId) {
+	async saveArticleAtt(c, attDataList, userId, accountId, domainId, emailId) {
 
 		for (let attData of attDataList) {
 			attData.userId = userId;
 			attData.emailId = emailId;
 			attData.accountId = accountId;
+			attData.domainId = domainId;
 			attData.type = attConst.type.EMBED;
 			if (!attData.buff) {
 				continue;

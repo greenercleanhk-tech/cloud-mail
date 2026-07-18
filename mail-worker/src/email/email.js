@@ -94,7 +94,7 @@ export async function email(message, env, ctx) {
 		const toName = email.to.find(item => item.address === message.to)?.name || '';
 		const code = await aiService.extractCode({ env }, email, { aiCode, aiCodeFilter });
 
-		const params = {
+		const 		params = {
 			toEmail: message.to,
 			toName: toName,
 			sendEmail: email.from.address,
@@ -111,6 +111,7 @@ export async function email(message, env, ctx) {
 			messageId: email.messageId,
 			userId: account ? account.userId : 0,
 			accountId: account ? account.accountId : 0,
+			domainId: account ? account.domainId : 0,
 			isDel: isDel.DELETE,
 			status: emailConst.status.SAVING
 		};
@@ -134,6 +135,7 @@ export async function email(message, env, ctx) {
 			attachment.emailId = emailRow.emailId;
 			attachment.userId = emailRow.userId;
 			attachment.accountId = emailRow.accountId;
+			attachment.domainId = emailRow.domainId;
 		});
 
 		try {

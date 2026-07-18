@@ -311,6 +311,7 @@ const emailService = {
 		emailData.content = html;
 		emailData.text = text;
 		emailData.accountId = accountId;
+		emailData.domainId = accountRow.domainId;
 		emailData.status = useCloudflareEmail ? emailConst.status.DELIVERED : emailConst.status.SENT;
 		emailData.type = emailConst.type.SEND;
 		emailData.userId = userId;
@@ -342,7 +343,7 @@ const emailService = {
 			if (imageDataList.length > 10) {
 				throw new BizError(t('imageAttLimit'));
 			}
-			await attService.saveArticleAtt(c, imageDataList, userId, accountId, emailResult.emailId);
+			await attService.saveArticleAtt(c, imageDataList, userId, accountId, accountRow.domainId, emailResult.emailId);
 		}
 
 		//保存普通附件
@@ -350,7 +351,7 @@ const emailService = {
 			if (attachments.length > 10) {
 				throw new BizError(t('attLimit'));
 			}
-			await attService.saveSendAtt(c, attachments, userId, accountId, emailResult.emailId);
+			await attService.saveSendAtt(c, attachments, userId, accountId, accountRow.domainId, emailResult.emailId);
 		}
 
 		const attList = await attService.selectByEmailIds(c, [emailResult.emailId]);
@@ -573,6 +574,7 @@ const emailService = {
 				//设置给收件人保存
 				emailValues.userId = accountRow.userId;
 				emailValues.accountId = accountRow.accountId;
+				emailValues.domainId = accountRow.domainId;
 				emailValues.type = emailConst.type.RECEIVE;
 				emailValues.status = emailConst.status.RECEIVE;
 
@@ -600,6 +602,7 @@ const emailService = {
 				//设置无收件人邮件信息
 				emailValues.userId = 0;
 				emailValues.accountId = 0;
+				emailValues.domainId = sendEmailData.domainId || 0;
 				emailValues.type = emailConst.type.RECEIVE;
 				emailValues.status = emailConst.status.NOONE;
 
@@ -628,6 +631,7 @@ const emailService = {
 				attValues.emailId = emailRow.emailId;
 				attValues.accountId = emailRow.accountId;
 				attValues.userId = emailRow.userId;
+				attValues.domainId = emailRow.domainId;
 				attValues.attId = null;
 				await orm(c).insert(att).values(attValues).run();
 			}
