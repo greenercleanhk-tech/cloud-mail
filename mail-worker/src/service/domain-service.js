@@ -100,10 +100,16 @@ const domainService = {
             throw new BizError(t('invalidDomainFormat'));
         }
 
-        // 檢查域名是否已存在
-        const existing = await this.getByDomain(c, domainName);
-        if (existing) {
-            throw new BizError(t('domainAlreadyExists'));
+        // 檢查是否有同名記錄（無論是否已軟刪除），有的話先徹底刪除再新增
+        // 避免 soft-delete 殘留導致 "domain already exists" 錯誤
+        const existingAny = await orm(c)
+            .select()
+            .from(domain)
+            .where(eq(domain.domain, domainName))
+            .get();
+        if (existingAny) {
+            // 硬刪除（永久移除）
+            await orm(c).delete(domain).where(eq(domain.domainId, existingAny.domainId)).run();
         }
 
         const row = await orm(c)
