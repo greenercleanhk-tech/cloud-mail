@@ -470,12 +470,22 @@ function submit() {
       ? addForm.suffix
       : (addForm.suffix?.domain || '');
 
+  // 兜底：若 suffixStr 仍然為空，嘗試從 domainStore 取第一個域名
+  if (!suffixStr && domainStore.domainList.length > 0) {
+    suffixStr = domainStore.domainList[0].domain || '';
+  }
+
   // 取出用戶輸入中的本地部分（@ 前的內容）
   const atIndex = addForm.email.indexOf('@');
   const localPart = atIndex >= 0 ? addForm.email.substring(0, atIndex) : addForm.email;
 
   // 拼接：本地部分 + 域名後綴，確保只有一個 @
   const fullEmail = localPart + suffixStr;
+
+  if (!suffixStr) {
+    ElMessage({ message: '請先在「域名管理」中添加並啟用域名', type: 'error', plain: true });
+    return;
+  }
 
   if (!isEmail(fullEmail)) {
     ElMessage({

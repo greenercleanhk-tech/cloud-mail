@@ -461,6 +461,12 @@ function formatImage(content) {
 }
 
 async function open() {
+  // 兜底：若 currentDomainId 未設置，主動從 domainStore 選第一個
+  if (!domainStore.currentDomainId && domainStore.domainList.length > 0) {
+    const first = domainStore.domainList[0];
+    domainStore.setCurrentDomain(first.domainId, first);
+  }
+
   const currentDomainId = domainStore.currentDomainId;
 
   // 從當前域名下的所有帳號中隨機選一個作為發件人
