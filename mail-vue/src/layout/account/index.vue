@@ -502,7 +502,7 @@ function getAccountList() {
 }
 
 
-function submit() {
+async function submit() {
 
   // ========== 批量模式 ==========
   if (addMode.value === 'batch') {
