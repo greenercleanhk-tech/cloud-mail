@@ -48,8 +48,9 @@
                 </el-select>
               </el-form-item>
 
-              <el-form-item :label="$t('recipientCount')" prop="totalRecipients">
-                <el-input-number v-model="scheduleForm.totalRecipients" :min="1" />
+              <el-form-item :label="$t('recipientCount')">
+                <span class="recipient-badge">{{ scheduleForm.totalRecipients }}</span>
+                <span class="recipient-hint">（自動計算，選擇通訊組後更新）</span>
               </el-form-item>
 
               <el-form-item :label="$t('sendTime')" prop="scheduledAt">
@@ -141,6 +142,18 @@
       <!-- ========== Tab 3：數據分析 ========== -->
       <el-tab-pane :label="$t('analytics')" name="analytics">
         <div class="analytics-wrapper">
+          <!-- 域名選擇器 -->
+          <div class="analytics-domain-selector">
+            <el-select v-model="analyticsDomainId" :placeholder="$t('selectDomainPlaceholder')" @change="onAnalyticsDomainChange">
+              <el-option
+                v-for="d in domainList"
+                :key="d.domainId"
+                :label="d.displayName || d.domain"
+                :value="d.domainId"
+              />
+            </el-select>
+          </div>
+
           <div class="number">
             <div class="number-item">
               <div class="top">
@@ -247,7 +260,7 @@
     <el-dialog
       v-model="showTemplateDialog"
       :title="editingTemplate ? $t('editTemplate') : $t('addTemplate')"
-      width="900px"
+      width="95vw"
       class="template-dialog"
     >
       <el-form :model="templateForm" label-width="100px">
@@ -258,7 +271,7 @@
           <el-input v-model="templateForm.subject" :placeholder="$t('subjectPlaceholder')" />
         </el-form-item>
         <el-form-item :label="$t('content')">
-          <tinyEditor :def-value="templateForm.content" ref="templateEditor" @change="onTemplateContentChange" style="height: 480px; display: block" />
+          <tinyEditor :def-value="templateForm.content" ref="templateEditor" @change="onTemplateContentChange" style="height: 70vh; display: block" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -405,7 +418,6 @@ const scheduleRules = {
   domainId: [{ required: true, message: '請選擇域名', trigger: 'change' }],
   templateId: [{ required: true, message: '請選擇模板', trigger: 'change' }],
   contactGroupIds: [{ required: true, message: '請選擇通訊組', trigger: 'change' }],
-  totalRecipients: [{ required: true, message: '請輸入收件人數量', trigger: 'blur' }],
   scheduledAt: [{ required: true, message: '請選擇發送時間', trigger: 'change' }]
 };
 
@@ -527,12 +539,18 @@ const emailColumnData = { receiveData: [], sendData: [], daysData: [] };
 let daySendTotal = 0;
 let senderPie = null, increaseLine = null, emailColumn = null, sendGauge = null;
 let analyticsLoaded = false;
+const analyticsDomainId = ref(null);
+
+function onAnalyticsDomainChange(domainId) {
+  analyticsLoaded = false;
+  loadAnalytics();
+}
 
 async function loadAnalytics() {
   if (analyticsLoaded) return;
   try {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const data = await analysisEcharts(timeZone);
+    const data = await analysisEcharts({ timeZone, domainId: analyticsDomainId.value });
 
     receiveData.value = data.numberCount.receiveTotal;
     sendData.value = data.numberCount.sendTotal;
@@ -716,7 +734,33 @@ watch(activeTab, (tab) => {
   margin-left: 4px;
 }
 
+.recipient-badge {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--el-color-primary);
+}
+
+.recipient-hint {
+  font-size: 12px;
+  color: #999;
+  margin-left: 8px;
+}
+
 /* ========== Analytics Tab ========== */
+.analytics-domain-selector {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.analytics-domain-selector .domain-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+
 .analytics-wrapper {
   display: flex;
   flex-direction: column;

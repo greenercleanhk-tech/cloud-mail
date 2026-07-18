@@ -14,6 +14,61 @@
         style="margin-top: 10px"
         :default-active="activeIndex"
       >
+        <!-- ========== 全局設置（固定，位於頂部）========== -->
+        <div class="manage-title">
+          <div>{{ $t('globalSettings') }}</div>
+        </div>
+
+        <!-- 營銷中心 -->
+        <el-menu-item
+          @click="router.push({ name: 'marketing' })"
+          :class="{ 'choose-item': route.meta.name === 'marketing' }"
+        >
+          <Icon icon="heroicons:megaphone-20-solid" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 21px">{{ $t('marketingCenter') }}</span>
+        </el-menu-item>
+
+        <!-- 通訊錄 -->
+        <el-menu-item
+          @click="router.push({ name: 'contacts' })"
+          :class="{ 'choose-item': route.meta.name === 'contact' }"
+        >
+          <Icon icon="carbon:user-multiple" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 21px">{{ $t('contacts') }}</span>
+        </el-menu-item>
+
+        <!-- 域名管理 -->
+        <el-menu-item
+          @click="router.push({ name: 'domain' })"
+          :class="{ 'choose-item': route.meta.name === 'domain' }"
+        >
+          <Icon icon="mdi:web" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 21px">{{ $t('domainManagement') }}</span>
+        </el-menu-item>
+
+        <!-- 全部郵件（可選，跨域名）-->
+        <el-menu-item
+          v-perm="'all-email:query'"
+          @click="router.push({ name: 'all-email' })"
+          :class="{ 'choose-item': route.meta.name === 'all-email' }"
+        >
+          <Icon icon="fluent:mail-list-28-regular" width="22" height="22" />
+          <span class="menu-name" style="margin-left: 20px">{{ $t('allMail') }}</span>
+        </el-menu-item>
+
+        <!-- 系統設置 -->
+        <el-menu-item
+          v-perm="'setting:query'"
+          @click="router.push({ name: 'sys-setting' })"
+          :class="{ 'choose-item': route.meta.name === 'sys-setting' }"
+        >
+          <Icon icon="eos-icons:system-ok-outlined" width="18" height="18" style="margin-left: 2px" />
+          <span class="menu-name" style="margin-left: 22px">{{ $t('systemSettings') }}</span>
+        </el-menu-item>
+
+        <!-- ========== 分隔線 ========== -->
+        <div class="menu-divider"></div>
+
         <!-- ========== 動態域名列表 ========== -->
         <template v-for="domainGroup in domainGroups" :key="domainGroup.domainId">
 
@@ -73,61 +128,6 @@
           </el-collapse-transition>
 
         </template>
-
-        <!-- ========== 分隔線 ========== -->
-        <div class="menu-divider"></div>
-
-        <!-- ========== 全局設置（固定）========== -->
-        <div class="manage-title">
-          <div>{{ $t('globalSettings') }}</div>
-        </div>
-
-        <!-- 營銷中心 -->
-        <el-menu-item
-          @click="router.push({ name: 'marketing' })"
-          :class="{ 'choose-item': route.meta.name === 'marketing' }"
-        >
-          <Icon icon="carbon:campaign" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 21px">{{ $t('marketingCenter') }}</span>
-        </el-menu-item>
-
-        <!-- 通訊錄 -->
-        <el-menu-item
-          @click="router.push({ name: 'contacts' })"
-          :class="{ 'choose-item': route.meta.name === 'contact' }"
-        >
-          <Icon icon="carbon:user-multiple" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 21px">{{ $t('contacts') }}</span>
-        </el-menu-item>
-
-        <!-- 域名管理 -->
-        <el-menu-item
-          @click="router.push({ name: 'domain' })"
-          :class="{ 'choose-item': route.meta.name === 'domain' }"
-        >
-          <Icon icon="mdi:web" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 21px">{{ $t('domainManagement') }}</span>
-        </el-menu-item>
-
-        <!-- 全部郵件（可選，跨域名）-->
-        <el-menu-item
-          v-perm="'all-email:query'"
-          @click="router.push({ name: 'all-email' })"
-          :class="{ 'choose-item': route.meta.name === 'all-email' }"
-        >
-          <Icon icon="fluent:mail-list-28-regular" width="22" height="22" />
-          <span class="menu-name" style="margin-left: 20px">{{ $t('allMail') }}</span>
-        </el-menu-item>
-
-        <!-- 系統設置 -->
-        <el-menu-item
-          v-perm="'setting:query'"
-          @click="router.push({ name: 'sys-setting' })"
-          :class="{ 'choose-item': route.meta.name === 'sys-setting' }"
-        >
-          <Icon icon="eos-icons:system-ok-outlined" width="18" height="18" style="margin-left: 2px" />
-          <span class="menu-name" style="margin-left: 22px">{{ $t('systemSettings') }}</span>
-        </el-menu-item>
 
       </el-menu>
     </div>

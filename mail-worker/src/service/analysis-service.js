@@ -1,7 +1,7 @@
 import analysisDao from '../dao/analysis-dao';
 import orm from '../entity/orm';
 import email from '../entity/email';
-import { desc, count, eq, and, ne, isNotNull } from 'drizzle-orm';
+import { desc, count, eq, and, ne, isNotNull, sql } from 'drizzle-orm';
 import { emailConst } from '../const/entity-const';
 import kvConst from '../const/kv-const';
 import dayjs from 'dayjs';
@@ -42,9 +42,7 @@ const analysisService = {
 
 	async queryEcharts(c, params) {
 
-		const { timeZone } = params;
-
-		let utcDate = toUtc().startOf('day');
+		const { timeZone, domainId } = params;
 
 		let localDate = utcDate.tz(timeZone);
 
@@ -69,7 +67,13 @@ const analysisService = {
 			orm(c)
 				.select({ name: email.name, total: count() })
 				.from(email)
-				.where(and(eq(email.type, emailConst.type.RECEIVE), isNotNull(email.name),ne(email.name,'noreply'), ne(email.name,'')))
+				.where(and(
+					eq(email.type, emailConst.type.RECEIVE),
+					isNotNull(email.name),
+					ne(email.name, 'noreply'),
+					ne(email.name, ''),
+					domainId ? eq(email.domainId, Number(domainId)) : sql`1=1`
+				))
 				.groupBy(email.name)
 				.orderBy(desc(count()))
 				.limit(6),
@@ -118,7 +122,9 @@ const analysisService = {
 	},
 
 	echartsCacheKey(params = {}) {
-		return kvConst.ANALYSIS_ECHARTS + encodeURIComponent(params.timeZone || 'UTC');
+		return kvConst.ANALYSIS_ECHARTS
+			+ '_' + encodeURIComponent(params.timeZone || 'UTC')
+			+ '_d' + encodeURIComponent(params.domainId || '');
 	},
 
 	echartsParamsByCacheKey(cacheKey) {
