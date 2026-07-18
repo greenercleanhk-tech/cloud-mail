@@ -8,6 +8,7 @@ import kvConst from '../const/kv-const';
 import KvConst from '../const/kv-const';
 import cryptoUtils from '../utils/crypto-utils';
 import emailService from './email-service';
+import domainService from './domain-service.js';
 import dayjs from 'dayjs';
 import permService from './perm-service';
 import roleService from './role-service';
@@ -306,7 +307,9 @@ const userService = {
 
 		const { email, type, password } = params;
 
-		if (!c.env.domain.includes(emailUtils.getDomain(email))) {
+		const emailDomain = emailUtils.getDomain(email);
+		const domainRow = await domainService.getByDomain(c, emailDomain);
+		if (!domainRow) {
 			throw new BizError(t('notEmailDomain'));
 		}
 

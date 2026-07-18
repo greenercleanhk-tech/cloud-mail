@@ -36,7 +36,9 @@ const accountService = {
 			throw new BizError(t('notEmail'));
 		}
 
-		if (!c.env.domain.includes(emailUtils.getDomain(email))) {
+		const emailDomain = emailUtils.getDomain(email);
+		const domainRow = await domainService.getByDomain(c, emailDomain);
+		if (!domainRow) {
 			throw new BizError(t('notExistDomain'));
 		}
 

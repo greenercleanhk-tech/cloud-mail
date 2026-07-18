@@ -8,6 +8,7 @@ import KvConst from '../const/kv-const';
 import constant from '../const/constant';
 import userContext from '../security/user-context';
 import verifyUtils from '../utils/verify-utils';
+import domainService from './domain-service.js';
 import accountService from './account-service';
 import settingService from './setting-service';
 import saltHashUtils from '../utils/crypto-utils';
@@ -61,7 +62,9 @@ const loginService = {
 			throw new BizError(t('pwdMinLength'));
 		}
 
-		if (!c.env.domain.includes(emailUtils.getDomain(email))) {
+		const emailDomain = emailUtils.getDomain(email);
+		const domainRow = await domainService.getByDomain(c, emailDomain);
+		if (!domainRow) {
 			throw new BizError(t('notEmailDomain'));
 		}
 

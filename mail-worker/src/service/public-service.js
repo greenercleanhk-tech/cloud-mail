@@ -8,6 +8,7 @@ import emailUtils from '../utils/email-utils';
 import roleService from './role-service';
 import verifyUtils from '../utils/verify-utils';
 import { t } from '../i18n/i18n';
+import domainService from './domain-service.js';
 import reqUtils from '../utils/req-utils';
 import dayjs from 'dayjs';
 import { isDel, roleConst } from '../const/entity-const';
@@ -104,7 +105,9 @@ const publicService = {
 				throw new BizError(t('notEmail'));
 			}
 
-			if (!c.env.domain.includes(emailUtils.getDomain(emailRow.email))) {
+			const emailDomain = emailUtils.getDomain(emailRow.email);
+			const domainRow = await domainService.getByDomain(c, emailDomain);
+			if (!domainRow) {
 				throw new BizError(t('notEmailDomain'));
 			}
 

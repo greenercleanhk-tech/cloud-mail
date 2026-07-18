@@ -8,6 +8,7 @@ import constant from '../const/constant';
 import BizError from '../error/biz-error';
 import {t} from '../i18n/i18n'
 import verifyRecordService from './verify-record-service';
+import domainService from './domain-service.js';
 import userContext from '../security/user-context';
 
 const settingService = {
@@ -31,22 +32,9 @@ const settingService = {
 			throw new BizError('数据库未初始化 Database not initialized.');
 		}
 
-		let domainList = c.env.domain;
-
-		if (typeof domainList === 'string') {
-			try {
-				domainList = JSON.parse(domainList)
-			} catch (error) {
-				throw new BizError(t('notJsonDomain'));
-			}
-		}
-
-		if (!c.env.domain) {
-			throw new BizError(t('noDomainVariable'));
-		}
-
-		domainList = domainList.map(item => '@' + item);
-		setting.domainList = domainList;
+		// Dynamically fetch active domains from database
+		const dbDomains = await domainService.listActive(c);
+		setting.domainList = dbDomains.map(d => '@' + d.domain);
 
 
 		let linuxdoSwitch = c.env.linuxdo_switch;
