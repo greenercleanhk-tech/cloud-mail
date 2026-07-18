@@ -258,6 +258,15 @@ const emailService = {
 
 		}
 
+		// 自動追加退訂連結（直接發送也需追加）
+		if (receiveEmail && receiveEmail.length > 0 && !allInternal) {
+			const token = Buffer.from(receiveEmail[0]).toString('base64');
+			const unsubLink = `${c.env.KV_URL || 'https://' + domain}/unsubscribe?token=${token}`;
+			html += `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
+				<a href="${unsubLink}" style="color:#999;text-decoration:underline;">退訂電子報</a>
+			</div>`;
+		}
+
 		let sendResult = {};
 
 		//存在站外邮箱时，如果配置了 Cloudflare Email Service 就优先使用，否则使用 Resend
