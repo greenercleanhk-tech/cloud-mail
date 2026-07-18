@@ -48,7 +48,6 @@
 
         <!-- 全部郵件（可選，跨域名）-->
         <el-menu-item
-          v-perm="'all-email:query'"
           @click="router.push({ name: 'all-email' })"
           :class="{ 'choose-item': route.meta.name === 'all-email' }"
         >
