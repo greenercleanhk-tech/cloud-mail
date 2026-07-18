@@ -13,6 +13,7 @@ import { email } from '../entity/email';
 import attService from '../service/att-service';
 import emailService from '../service/email-service';
 import settingService from '../service/setting-service';
+import domainService from '../service/domain-service';
 import { eq, and, desc, inArray, count, lt, gte } from 'drizzle-orm';
 import { t } from '../i18n/i18n';
 import dayjs from 'dayjs';
@@ -312,7 +313,9 @@ const scheduleService = {
         }
 
         const { resendTokens } = await settingService.query(c);
-        const resendToken = resendTokens[accountRow.email.split('@')[1]];
+        const domainName = accountRow.email.split('@')[1];
+        const domainRow = await domainService.getByDomain(c, domainName);
+        const resendToken = (domainRow && domainRow.resendApiKey) ? domainRow.resendApiKey : resendTokens[domainName];
 
         let sent = 0;
         let failed = 0;
