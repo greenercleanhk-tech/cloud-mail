@@ -161,7 +161,7 @@ import tinyEditor from '@/components/tiny-editor/index.vue';
 import { templateList as fetchTemplateList, templateAdd, templateUpdate, templateDelete } from '@/request/template.js';
 import { scheduleList as fetchScheduleList, scheduleAdd, scheduleCancel } from '@/request/schedule.js';
 import { domainList as getDomainList } from '@/request/domain.js';
-import { contactGroupList as getContactGroupList } from '@/request/contact.js';
+import { groupList as getGroupList } from '@/request/contact.js';
 import { useDomainStore } from '@/store/domain.js';
 
 const domainStore = useDomainStore();
@@ -310,7 +310,7 @@ async function loadDomains() {
 
 async function loadContactGroups() {
   try {
-    const res = await getContactGroupList({ domainId: domainStore.currentDomainId || 0 });
+    const res = await getGroupList({ domainId: domainStore.currentDomainId || 0 });
     contactGroupList.value = res || [];
   } catch (e) {
     console.error('載入通訊組失敗', e);
@@ -329,7 +329,7 @@ async function onDomainChange(domainId) {
   try {
     const [tmpl, groups] = await Promise.all([
       fetchTemplateList({ domainId }),
-      getContactGroupList({ domainId })
+      getGroupList({ domainId })
     ]);
     templateOptions.value = tmpl || [];
     contactGroupList.value = groups || [];
