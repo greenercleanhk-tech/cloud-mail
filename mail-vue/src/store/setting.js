@@ -10,7 +10,9 @@ export const useSettingStore = defineStore('setting', {
         lang: '',
     }),
     actions: {
-
+        setDomainList(list) {
+            this.domainList = list;
+        },
     },
     persist: {
         pick: ['lang'],

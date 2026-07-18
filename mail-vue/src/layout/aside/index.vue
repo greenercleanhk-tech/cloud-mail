@@ -134,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import router from '@/router/index.js';
 import { useRoute } from 'vue-router';
 import { Icon } from '@iconify/vue';
@@ -233,6 +233,25 @@ function goToAnalysis(domainId) {
 onMounted(() => {
   loadDomains();
 });
+
+// 監聽 settingStore.domainList 變化（域名新增/編輯/刪除後同步）
+watch(
+  () => settingStore.domainList,
+  (newList) => {
+    if (newList && newList.length > 0) {
+      domainGroups.value = newList;
+      // 確保當前域名在列表中
+      if (domainGroups.value.length === 1) {
+        const firstDomain = domainGroups.value[0];
+        domainStore.setCurrentDomain(firstDomain.domainId);
+        if (!expandedDomains.value.includes(firstDomain.domainId)) {
+          expandedDomains.value = [firstDomain.domainId];
+        }
+      }
+    }
+  },
+  { deep: true }
+);
 </script>
 
 <style lang="scss" scoped>

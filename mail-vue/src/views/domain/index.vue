@@ -87,6 +87,11 @@ import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
 import { domainList as getDomainList, domainAdd, domainUpdate, domainDelete } from '@/request/domain.js';
+import { useSettingStore } from '@/store/setting.js';
+import { useDomainStore } from '@/store/domain.js';
+
+const settingStore = useSettingStore();
+const domainStore = useDomainStore();
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -117,6 +122,12 @@ async function loadDomains() {
   try {
     const res = await getDomainList();
     domainList.value = res || [];
+    // 同步到 settingStore，觸發側邊欄自動刷新
+    settingStore.setDomainList(res || []);
+    // 如果還沒有選中域名，自動選第一個
+    if (!domainStore.currentDomainId && domainList.value.length > 0) {
+      domainStore.setCurrentDomain(domainList.value[0].domainId);
+    }
   } catch (e) {
     ElMessage.error('載入域名失敗');
   } finally {

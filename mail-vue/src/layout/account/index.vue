@@ -141,6 +141,7 @@ import {isEmail} from "@/utils/verify-utils.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
 import {useEmailStore} from "@/store/email.js";
+import {useDomainStore} from "@/store/domain.js";
 import {useUserStore} from "@/store/user.js";
 import {hasPerm} from "@/perm/perm.js"
 import {useI18n} from "vue-i18n";
@@ -151,6 +152,7 @@ const userStore = useUserStore();
 const accountStore = useAccountStore();
 const settingStore = useSettingStore();
 const emailStore = useEmailStore();
+const domainStore = useDomainStore();
 const showAdd = ref(false)
 const addLoading = ref(false);
 const domainList = computed(() => settingStore.domainList)
@@ -194,6 +196,15 @@ watch(() => settingStore.domainList, (list) => {
     addForm.suffix = list[0]
   }
 }, {immediate: true})
+
+// 監聽域名切換 → 重新載入該域名的帳號列表
+watch(() => domainStore.currentDomainId, (newDomainId) => {
+  if (newDomainId) {
+    accounts.length = 0;
+    noLoading.value = false;
+    getAccountList();
+  }
+});
 
 
 const openSelect = () => {
