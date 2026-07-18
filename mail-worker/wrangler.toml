@@ -44,4 +44,4 @@ crons = ["0 16 * * *"]	#每天晚上12点执行每日任务,刷新分析缓存
 #jwt_secret = ""			#jwt令牌的密钥,随便填一串字符串
 
 [build]
-command = "cd ../mail-vue && NODE_PATH=$PWD/../node_modules npx vite build --mode release && cp -r dist $PWD/../mail-worker/dist"
+command = "cd ../mail-vue && NODE_PATH=../node_modules npx vite build --mode release && cp -r dist ../mail-worker/dist"
