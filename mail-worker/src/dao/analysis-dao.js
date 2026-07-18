@@ -15,14 +15,17 @@ const analysisDao = {
 	},
 
 	async numberCount(c, domainId) {
-		const accountIds = await this.getDomainAccountIds(c, domainId);
+		const bindValues = domainId ? [domainId, domainId, domainId] : [];
 
-		// 構建 email 過濾條件：只看指定 domain 的帳號收到的郵件
-		const emailFilter = accountIds !== null
-			? `AND account_id IN (SELECT account_id FROM account WHERE domain_id = ${domainId} AND is_del = 0)`
+		const emailFilter = domainId
+			? 'AND email.account_id IN (SELECT account_id FROM account WHERE domain_id = ? AND is_del = 0)'
+			: '';
+		const accountFilter = domainId ? 'WHERE domain_id = ? AND is_del = 0' : 'WHERE is_del = 0';
+		const userFilter = domainId
+			? 'WHERE user_id IN (SELECT user_id FROM account WHERE domain_id = ? AND is_del = 0)'
 			: '';
 
-		const { results } = await c.env.DB.prepare(`
+		const sql = `
 			SELECT
 				COALESCE(e.receiveTotal, 0) AS receiveTotal,
 				COALESCE(e.sendTotal, 0) AS sendTotal,
@@ -58,6 +61,7 @@ const analysisDao = {
 					SUM(CASE WHEN is_del = 0 THEN 1 ELSE 0 END) AS normalUserTotal
 				FROM
 					user
+				${userFilter}
 			) u
 			CROSS JOIN (
 				SELECT
@@ -66,9 +70,11 @@ const analysisDao = {
 					SUM(CASE WHEN is_del = 0 THEN 1 ELSE 0 END) AS normalAccountTotal
 				FROM
 					account
-				${domainId ? `WHERE domain_id = ${domainId}` : ''}
+				${accountFilter}
 			) a
-		`).all();
+		`;
+
+		const { results } = await c.env.DB.prepare(sql).bind(...bindValues).all();
 		return results[0];
 	},
 
