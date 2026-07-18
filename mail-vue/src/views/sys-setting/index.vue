@@ -943,7 +943,9 @@ function getSettings() {
   settingReady.value = false
   settingQuery().then(settingData => {
     setting.value = settingData
-    settingStore.domainList = settingData.domainList;
+    if (settingData.domainList && settingData.domainList.length > 0) {
+      settingStore.domainList = settingData.domainList;
+    }
     resendTokenForm.domain = setting.value.domainList[0]
     loginOpacity.value = setting.value.loginOpacity
     minEmailPrefix.value = setting.value.minEmailPrefix

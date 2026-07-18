@@ -235,17 +235,22 @@ onMounted(() => {
 });
 
 // 監聽 settingStore.domainList 變化（域名新增/編輯/刪除後同步）
+// 注意：settingStore.domainList 是字串陣列（如 ["@parkin.hk"]），
+// domainGroups 是對象陣列，兩者格式不同，不要直接覆蓋
 watch(
   () => settingStore.domainList,
   (newList) => {
     if (newList && newList.length > 0) {
-      domainGroups.value = newList;
-      // 確保當前域名在列表中
-      if (domainGroups.value.length === 1) {
-        const firstDomain = domainGroups.value[0];
-        domainStore.setCurrentDomain(firstDomain.domainId);
-        if (!expandedDomains.value.includes(firstDomain.domainId)) {
-          expandedDomains.value = [firstDomain.domainId];
+      // 確保是有效的域名對象才更新（預防 settingQuery 返回空值時清掉側邊欄）
+      const first = newList[0];
+      if (typeof first === 'object' && first !== null && first.domainId) {
+        domainGroups.value = newList;
+        if (domainGroups.value.length === 1) {
+          const firstDomain = domainGroups.value[0];
+          domainStore.setCurrentDomain(firstDomain.domainId);
+          if (!expandedDomains.value.includes(firstDomain.domainId)) {
+            expandedDomains.value = [firstDomain.domainId];
+          }
         }
       }
     }

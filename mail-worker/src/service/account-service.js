@@ -97,7 +97,7 @@ const accountService = {
 		}
 
 
-		accountRow = await orm(c).insert(account).values({ email: email, userId: userId, name: emailUtils.getName(email), domainId }).returning().get();
+		accountRow = await orm(c).insert(account).values({ email: email, userId: userId, name: emailUtils.getName(email), domainId, allReceive: 0 }).returning().get();
 
 		if (addEmailVerify === settingConst.addEmailVerify.COUNT && !addVerifyOpen) {
 			const row = await verifyRecordService.increaseAddCount(c);
