@@ -29,8 +29,35 @@ const dbInit = {
 		await this.v2_8DB(c);
 		await this.v2_9DB(c);
 		await this.v3_0DB(c);
+		await this.v3_1DB(c);
 		await settingService.refresh(c);
 		return c.text('success');
+	},
+
+	async v3_1DB(c) {
+		try {
+			await c.env.db.prepare(`ALTER TABLE email ADD COLUMN domain_id INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+
+		try {
+			await c.env.db.prepare(`ALTER TABLE account ADD COLUMN domain_id INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+
+		try {
+			await c.env.db.prepare(`ALTER TABLE contact ADD COLUMN domain_id INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
+
+		try {
+			await c.env.db.prepare(`ALTER TABLE attachments ADD COLUMN domain_id INTEGER NOT NULL DEFAULT 0;`).run();
+		} catch (e) {
+			console.warn(`跳过字段：${e.message}`);
+		}
 	},
 
 	async v3_0DB(c) {
@@ -526,6 +553,7 @@ const dbInit = {
 			send_email TEXT,
 			name TEXT,
 			account_id INTEGER NOT NULL,
+			domain_id INTEGER NOT NULL DEFAULT 0,
 			user_id INTEGER NOT NULL,
 			subject TEXT,
 			content TEXT,
@@ -550,6 +578,7 @@ const dbInit = {
 			user_id INTEGER NOT NULL,
 			email_id INTEGER NOT NULL,
 			account_id INTEGER NOT NULL,
+			domain_id INTEGER NOT NULL DEFAULT 0,
 			key TEXT NOT NULL,
 			filename TEXT,
 			mime_type TEXT,
@@ -558,6 +587,18 @@ const dbInit = {
 			related TEXT,
 			content_id TEXT,
 			encoding TEXT,
+			create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+		  )
+		`).run();
+
+		await c.env.db.prepare(`
+		  CREATE TABLE IF NOT EXISTS contact (
+			contact_id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			domain_id INTEGER NOT NULL DEFAULT 0,
+			email TEXT NOT NULL,
+			name TEXT NOT NULL DEFAULT '',
+			is_del INTEGER DEFAULT 0 NOT NULL,
 			create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
 		  )
 		`).run();
@@ -584,6 +625,7 @@ const dbInit = {
 			latest_email_time DATETIME,
 			create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
 			user_id INTEGER NOT NULL,
+			domain_id INTEGER NOT NULL DEFAULT 0,
 			is_del INTEGER DEFAULT 0 NOT NULL
 		  )
 		`).run();
