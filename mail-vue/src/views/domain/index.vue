@@ -116,7 +116,7 @@ async function loadDomains() {
   loading.value = true;
   try {
     const res = await getDomainList();
-    domainList.value = res.data.data || [];
+    domainList.value = res || [];
   } catch (e) {
     ElMessage.error('載入域名失敗');
   } finally {

@@ -162,7 +162,7 @@ const activeIndex = computed(() => route.meta.name);
 async function loadDomains() {
   try {
     const res = await domainActive();
-    domainGroups.value = res.data.data || [];
+    domainGroups.value = res || [];
 
     // 如果還沒設置當前域名，且有域名列表，自動選第一個
     if (!domainStore.currentDomainId && domainGroups.value.length > 0) {

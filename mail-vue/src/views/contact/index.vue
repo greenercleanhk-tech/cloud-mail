@@ -187,7 +187,7 @@ async function loadContacts() {
       groupId: selectedGroupId.value,
       page: page.value
     });
-    contacts.value = res.data.data || [];
+    contacts.value = res || [];
   } catch (e) {
     ElMessage.error('載入失敗');
   } finally {
@@ -198,7 +198,7 @@ async function loadContacts() {
 async function loadGroups() {
   try {
     const res = await groupList({ domainId: domainStore.currentDomainId });
-    groups.value = res.data.data || [];
+    groups.value = res || [];
   } catch (e) {
     console.error('載入群組失敗', e);
   }
