@@ -86,7 +86,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
-import { domainList, domainAdd, domainUpdate, domainDelete } from '@/request/domain.js';
+import { domainList as getDomainList, domainAdd, domainUpdate, domainDelete } from '@/request/domain.js';
 
 const loading = ref(false);
 const submitting = ref(false);
@@ -115,7 +115,7 @@ function getStatusClass(status) {
 async function loadDomains() {
   loading.value = true;
   try {
-    const res = await domainList();
+    const res = await getDomainList();
     domainList.value = res.data.data || [];
   } catch (e) {
     ElMessage.error('載入域名失敗');
