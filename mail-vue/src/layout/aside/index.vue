@@ -69,14 +69,6 @@
                 <Icon icon="solar:star-line-duotone" width="20" height="20" />
                 <span class="menu-name" style="margin-left: 21px">{{ $t('starred') }}</span>
               </el-menu-item>
-
-              <el-menu-item
-                @click="goToAnalysis(domainGroup.domainId)"
-                :class="{ 'choose-item': isCurrentPage('analysis', domainGroup.domainId) }"
-              >
-                <Icon icon="fluent:data-pie-20-regular" width="24" height="24" />
-                <span class="menu-name" style="margin-left: 18px">{{ $t('analytics') }}</span>
-              </el-menu-item>
             </div>
           </el-collapse-transition>
 
@@ -89,6 +81,15 @@
         <div class="manage-title">
           <div>{{ $t('globalSettings') }}</div>
         </div>
+
+        <!-- 營銷中心 -->
+        <el-menu-item
+          @click="router.push({ name: 'marketing' })"
+          :class="{ 'choose-item': route.meta.name === 'marketing' }"
+        >
+          <Icon icon="carbon:campaign" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 21px">{{ $t('marketingCenter') }}</span>
+        </el-menu-item>
 
         <!-- 通訊錄 -->
         <el-menu-item
@@ -126,15 +127,6 @@
         >
           <Icon icon="eos-icons:system-ok-outlined" width="18" height="18" style="margin-left: 2px" />
           <span class="menu-name" style="margin-left: 22px">{{ $t('systemSettings') }}</span>
-        </el-menu-item>
-
-        <!-- 營銷中心 -->
-        <el-menu-item
-          @click="router.push({ name: 'marketing' })"
-          :class="{ 'choose-item': route.meta.name === 'marketing' }"
-        >
-          <Icon icon="carbon:campaign" width="20" height="20" />
-          <span class="menu-name" style="margin-left: 21px">{{ $t('marketingCenter') }}</span>
         </el-menu-item>
 
       </el-menu>

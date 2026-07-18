@@ -7,29 +7,8 @@
 
     <!-- Tab 切換 -->
     <el-tabs v-model="activeTab" class="marketing-tabs">
-      <!-- ========== Tab 1：郵件模板 ========== -->
-      <el-tab-pane :label="$t('emailTemplates')" name="template">
-        <div class="tab-toolbar">
-          <el-button type="primary" @click="openTemplateDialog()">
-            <Icon icon="carbon:add" />
-            {{ $t('addTemplate') }}
-          </el-button>
-        </div>
 
-        <el-table :data="templateList" stripe v-loading="templateLoading" style="width: 100%">
-          <el-table-column prop="name" :label="$t('templateName')" min-width="150" />
-          <el-table-column prop="subject" :label="$t('subject')" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="createTime" :label="$t('createTime')" width="160" />
-          <el-table-column :label="$t('actions')" width="160" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openTemplateDialog(row)">{{ $t('edit') }}</el-button>
-              <el-button link type="danger" @click="handleDeleteTemplate(row)">{{ $t('delete') }}</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-tab-pane>
-
-      <!-- ========== Tab 2：發件排程 ========== -->
+      <!-- ========== Tab 1：發件排程 ========== -->
       <el-tab-pane :label="$t('sendSchedule')" name="schedule">
         <!-- 新建排程表單 -->
         <div class="schedule-form">
@@ -51,9 +30,21 @@
                 </el-select>
               </el-form-item>
 
-              <el-form-item :label="$t('selectContactGroup')" prop="contactGroupId">
-                <el-select v-model="scheduleForm.contactGroupId" :placeholder="$t('selectContactGroupPlaceholder')">
-                  <el-option v-for="g in contactGroupList" :key="g.groupId" :label="g.name" :value="g.groupId" />
+              <el-form-item :label="$t('selectContactGroup')" prop="contactGroupIds">
+                <el-select
+                  v-model="scheduleForm.contactGroupIds"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  :placeholder="$t('selectContactGroupPlaceholder')"
+                  @change="onContactGroupChange"
+                >
+                  <el-option
+                    v-for="g in contactGroupList"
+                    :key="g.groupId"
+                    :label="g.name + (g.memberCount ? ' (' + g.memberCount + '人)' : '')"
+                    :value="g.groupId"
+                  />
                 </el-select>
               </el-form-item>
 
@@ -124,13 +115,140 @@
           </el-table>
         </div>
       </el-tab-pane>
+
+      <!-- ========== Tab 2：郵件模板 ========== -->
+      <el-tab-pane :label="$t('emailTemplates')" name="template">
+        <div class="tab-toolbar">
+          <el-button type="primary" @click="openTemplateDialog()">
+            <Icon icon="carbon:add" />
+            {{ $t('addTemplate') }}
+          </el-button>
+        </div>
+
+        <el-table :data="templateList" stripe v-loading="templateLoading" style="width: 100%">
+          <el-table-column prop="name" :label="$t('templateName')" min-width="150" />
+          <el-table-column prop="subject" :label="$t('subject')" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="createTime" :label="$t('createTime')" width="160" />
+          <el-table-column :label="$t('actions')" width="160" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openTemplateDialog(row)">{{ $t('edit') }}</el-button>
+              <el-button link type="danger" @click="handleDeleteTemplate(row)">{{ $t('delete') }}</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-tab-pane>
+
+      <!-- ========== Tab 3：數據分析 ========== -->
+      <el-tab-pane :label="$t('analytics')" name="analytics">
+        <div class="analytics-wrapper">
+          <div class="number">
+            <div class="number-item">
+              <div class="top">
+                <div class="left">
+                  <div>{{ $t('totalReceived') }}</div>
+                  <div>
+                    <el-statistic :formatter="value => Math.round(value)" :value="receiveData"/>
+                  </div>
+                </div>
+                <div class="right">
+                  <div class="count-icon">
+                    <Icon icon="hugeicons:mailbox-01" width="25" height="25"></Icon>
+                  </div>
+                </div>
+              </div>
+              <div class="delete-ratio">
+                <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalReceiveTotal }}</span></div>
+                <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delReceiveTotal }}</span></div>
+              </div>
+            </div>
+            <div class="number-item">
+              <div class="top">
+                <div class="left">
+                  <div>{{ $t('totalSent') }}</div>
+                  <div>
+                    <el-statistic :formatter="value => Math.round(value)" :value="sendData"/>
+                  </div>
+                </div>
+                <div class="right">
+                  <div class="count-icon">
+                    <Icon icon="cil:send" width="25" height="25"></Icon>
+                  </div>
+                </div>
+              </div>
+              <div class="delete-ratio">
+                <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalSendTotal }}</span></div>
+                <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delSendTotal }}</span></div>
+              </div>
+            </div>
+            <div class="number-item">
+              <div class="top">
+                <div class="left">
+                  <div>{{ $t('totalMailboxes') }}</div>
+                  <div>
+                    <el-statistic :formatter="value => Math.round(value)" :value="accountData"/>
+                  </div>
+                </div>
+                <div class="right">
+                  <div class="count-icon">
+                    <Icon icon="lets-icons:e-mail" width="23" height="23"></Icon>
+                  </div>
+                </div>
+              </div>
+              <div class="delete-ratio">
+                <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalAccountTotal }}</span></div>
+                <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delAccountTotal }}</span></div>
+              </div>
+            </div>
+            <div class="number-item">
+              <div class="top">
+                <div class="left">
+                  <div>{{ $t('totalUsers') }}</div>
+                  <div>
+                    <el-statistic :formatter="value => Math.round(value)" :value="userData"/>
+                  </div>
+                </div>
+                <div class="right">
+                  <div class="count-icon">
+                    <Icon icon="iconoir:user" width="25" height="25"></Icon>
+                  </div>
+                </div>
+              </div>
+              <div class="delete-ratio">
+                <div>{{ $t('active') }} <span class="normal">{{ numberCount.normalUserTotal }}</span></div>
+                <div>{{ $t('deleted') }} <span class="deleted">{{ numberCount.delUserTotal }}</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="picture">
+            <div class="picture-item">
+              <div class="title">{{ $t('emailSource') }}</div>
+              <div class="sender-pie"></div>
+            </div>
+            <div class="picture-item">
+              <div class="title">{{ $t('userGrowth') }}</div>
+              <div class="increase-line"></div>
+            </div>
+          </div>
+          <div class="picture-cs">
+            <div class="picture-cs-item">
+              <div class="title">{{ $t('emailGrowth') }}</div>
+              <div class="email-column"></div>
+            </div>
+            <div class="picture-cs-item">
+              <div class="title">{{ $t('sentToday') }}</div>
+              <div class="send-count"></div>
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
 
     <!-- ========== 模板新增/編輯 Dialog ========== -->
     <el-dialog
       v-model="showTemplateDialog"
       :title="editingTemplate ? $t('editTemplate') : $t('addTemplate')"
-      width="600px"
+      width="900px"
+      class="template-dialog"
     >
       <el-form :model="templateForm" label-width="100px">
         <el-form-item :label="$t('templateName')">
@@ -140,7 +258,7 @@
           <el-input v-model="templateForm.subject" :placeholder="$t('subjectPlaceholder')" />
         </el-form-item>
         <el-form-item :label="$t('content')">
-          <tinyEditor :def-value="templateForm.content" ref="templateEditor" @change="onTemplateContentChange" style="height: 320px; display: block" />
+          <tinyEditor :def-value="templateForm.content" ref="templateEditor" @change="onTemplateContentChange" style="height: 480px; display: block" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -154,7 +272,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
+import { ref, reactive, onMounted, onActivated, watch, nextTick } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
 import tinyEditor from '@/components/tiny-editor/index.vue';
@@ -162,12 +280,16 @@ import { templateList as fetchTemplateList, templateAdd, templateUpdate, templat
 import { scheduleList as fetchScheduleList, scheduleAdd, scheduleCancel } from '@/request/schedule.js';
 import { domainList as getDomainList } from '@/request/domain.js';
 import { groupList as getGroupList } from '@/request/contact.js';
+import { analysisEcharts } from '@/request/analysis.js';
 import { useDomainStore } from '@/store/domain.js';
+import echarts from '@/echarts/index.js';
+import dayjs from 'dayjs';
+import { useTransition } from '@vueuse/core';
 
 const domainStore = useDomainStore();
 
 // ========== Tab 控制 ==========
-const activeTab = ref('template');
+const activeTab = ref('schedule');
 
 // ========== 模板相關 ==========
 const templateLoading = ref(false);
@@ -273,7 +395,7 @@ const scheduleForm = reactive({
   name: '',
   domainId: null,
   templateId: null,
-  contactGroupId: null,
+  contactGroupIds: [],
   totalRecipients: 0,
   scheduledAt: null
 });
@@ -282,7 +404,7 @@ const scheduleRules = {
   name: [{ required: true, message: '請輸入任務名稱', trigger: 'blur' }],
   domainId: [{ required: true, message: '請選擇域名', trigger: 'change' }],
   templateId: [{ required: true, message: '請選擇模板', trigger: 'change' }],
-  contactGroupId: [{ required: true, message: '請選擇通訊組', trigger: 'change' }],
+  contactGroupIds: [{ required: true, message: '請選擇通訊組', trigger: 'change' }],
   totalRecipients: [{ required: true, message: '請輸入收件人數量', trigger: 'blur' }],
   scheduledAt: [{ required: true, message: '請選擇發送時間', trigger: 'change' }]
 };
@@ -308,9 +430,9 @@ async function loadDomains() {
   }
 }
 
-async function loadContactGroups() {
+async function loadContactGroups(domainId) {
   try {
-    const res = await getGroupList({ domainId: domainStore.currentDomainId || 0 });
+    const res = await getGroupList({ domainId: domainId || 0 });
     contactGroupList.value = res || [];
   } catch (e) {
     console.error('載入通訊組失敗', e);
@@ -318,9 +440,9 @@ async function loadContactGroups() {
 }
 
 async function onDomainChange(domainId) {
-  // 切換域名時，重新載入該域名的模板和通訊組
   scheduleForm.templateId = null;
-  scheduleForm.contactGroupId = null;
+  scheduleForm.contactGroupIds = [];
+  scheduleForm.totalRecipients = 0;
   templateOptions.value = [];
   contactGroupList.value = [];
 
@@ -338,6 +460,17 @@ async function onDomainChange(domainId) {
   }
 }
 
+function onContactGroupChange(groupIds) {
+  if (!groupIds || groupIds.length === 0) {
+    scheduleForm.totalRecipients = 0;
+    return;
+  }
+  const total = contactGroupList.value
+    .filter(g => groupIds.includes(g.groupId))
+    .reduce((sum, g) => sum + (g.memberCount || 0), 0);
+  scheduleForm.totalRecipients = total;
+}
+
 async function handleCreateSchedule() {
   try {
     await scheduleFormRef.value.validate();
@@ -347,10 +480,10 @@ async function handleCreateSchedule() {
 
   scheduleSubmitting.value = true;
   try {
-    await scheduleAdd({ ...scheduleForm });
+    // 發送 contactGroupIds 數組
+    await scheduleAdd({ ...scheduleForm, contactGroupIds: scheduleForm.contactGroupIds });
     ElMessage.success('排程已建立');
-    // 重置表單
-    Object.assign(scheduleForm, { name: '', domainId: null, templateId: null, contactGroupId: null, totalRecipients: 0, scheduledAt: null });
+    Object.assign(scheduleForm, { name: '', domainId: null, templateId: null, contactGroupIds: [], totalRecipients: 0, scheduledAt: null });
     templateOptions.value = [];
     contactGroupList.value = [];
     loadSchedules();
@@ -370,6 +503,134 @@ async function handleCancelSchedule(row) {
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('取消失敗');
   }
+}
+
+// ========== 分析相關（Tab 3） ==========
+const receiveData = ref(0);
+const sendData = ref(0);
+const accountData = ref(0);
+const userData = ref(0);
+
+const receiveDataAnim = useTransition(receiveData, { duration: 1500 });
+const sendDataAnim = useTransition(sendData, { duration: 1500 });
+const accountDataAnim = useTransition(accountData, { duration: 1500 });
+const userDataAnim = useTransition(userData, { duration: 1500 });
+
+const numberCount = reactive({
+  normalReceiveTotal: 0, normalSendTotal: 0, normalAccountTotal: 0, normalUserTotal: 0,
+  delReceiveTotal: 0, delSendTotal: 0, delAccountTotal: 0, delUserTotal: 0
+});
+
+const senderData = ref(null);
+const userLineData = { xdata: [], sdata: [] };
+const emailColumnData = { receiveData: [], sendData: [], daysData: [] };
+let daySendTotal = 0;
+let senderPie = null, increaseLine = null, emailColumn = null, sendGauge = null;
+let analyticsLoaded = false;
+
+async function loadAnalytics() {
+  if (analyticsLoaded) return;
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const data = await analysisEcharts(timeZone);
+
+    receiveData.value = data.numberCount.receiveTotal;
+    sendData.value = data.numberCount.sendTotal;
+    accountData.value = data.numberCount.accountTotal;
+    userData.value = data.numberCount.userTotal;
+
+    Object.assign(numberCount, {
+      normalReceiveTotal: data.numberCount.normalReceiveTotal,
+      normalSendTotal: data.numberCount.normalSendTotal,
+      normalAccountTotal: data.numberCount.normalAccountTotal,
+      normalUserTotal: data.numberCount.normalUserTotal,
+      delReceiveTotal: data.numberCount.delReceiveTotal,
+      delSendTotal: data.numberCount.delSendTotal,
+      delAccountTotal: data.numberCount.delAccountTotal,
+      delUserTotal: data.numberCount.delUserTotal
+    });
+
+    senderData.value = data.receiveRatio.nameRatio.map(item => ({
+      name: item.name || ' ',
+      value: item.total
+    }));
+
+    userLineData.xdata = data.userDayCount.map(item => dayjs(item.date).format('M.D'));
+    userLineData.sdata = data.userDayCount.map(item => item.total);
+    emailColumnData.daysData = data.emailDayCount.receiveDayCount.map(item => dayjs(item.date).format('M.D'));
+    emailColumnData.receiveData = data.emailDayCount.receiveDayCount.map(item => item.total);
+    emailColumnData.sendData = data.emailDayCount.sendDayCount.map(item => item.total);
+    daySendTotal = data.daySendTotal;
+
+    analyticsLoaded = true;
+    await nextTick();
+    initAnalyticsCharts();
+  } catch (e) {
+    console.error('載入分析數據失敗', e);
+  }
+}
+
+function initAnalyticsCharts() {
+  createSenderPie();
+  createIncreaseLine();
+  createEmailColumnChart();
+  createSendGauge();
+}
+
+function createSenderPie() {
+  if (senderPie) senderPie.dispose();
+  senderPie = echarts.init(document.querySelector('.sender-pie'));
+  senderPie.setOption({
+    tooltip: { trigger: 'item', formatter: params => `${params.marker} ${params.name}：${params.value} (${params.percent}%)` },
+    legend: { type: 'scroll', orient: 'vertical', left: 10, top: 20 },
+    series: [{ data: senderData.value, type: 'pie', radius: ['40%', '65%'], center: ['75%', '45%'], itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 }, label: { show: false }, color: ['#3CB2FF', '#13DEB9', '#FBBF24', '#FF7F50', '#BAE6FD', '#C084FC'] }]
+  });
+}
+
+function createIncreaseLine() {
+  if (increaseLine) increaseLine.dispose();
+  increaseLine = echarts.init(document.querySelector('.increase-line'));
+  increaseLine.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+    grid: { top: '8%', right: 20, left: 35, bottom: 35 },
+    xAxis: { type: 'category', data: userLineData.xdata, boundaryGap: false, axisLine: { lineStyle: { color: '#909399' } } },
+    yAxis: { type: 'value', axisLine: { show: true, lineStyle: { color: '#909399' } }, splitLine: { lineStyle: { type: 'dashed', color: '#D4D7DE' } } },
+    series: [{ data: userLineData.sdata, type: 'line', smooth: 0.1, symbol: 'none', lineStyle: { color: '#1D84FF', width: 2.5 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(29,132,255,0.3)' }, { offset: 1, color: 'rgba(29,132,255,0.03)' }]) } }]
+  });
+}
+
+function createEmailColumnChart() {
+  if (emailColumn) emailColumn.dispose();
+  emailColumn = echarts.init(document.querySelector('.email-column'));
+  emailColumn.setOption({
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['收到郵件', '發送郵件'], top: 0 },
+    grid: { left: 18, right: 18, bottom: 15, top: 50 },
+    xAxis: { type: 'category', data: emailColumnData.daysData, axisLine: { lineStyle: { color: '#909399' } } },
+    yAxis: { type: 'value', axisLine: { show: true, lineStyle: { color: '#909399' } }, splitLine: { lineStyle: { type: 'dashed' } } },
+    series: [
+      { name: '收到郵件', type: 'bar', stack: 'total', barWidth: '60%', data: emailColumnData.receiveData, itemStyle: { color: '#3CB2FF' } },
+      { name: '發送郵件', type: 'bar', stack: 'total', data: emailColumnData.sendData, itemStyle: { color: '#13deb9' } }
+    ]
+  });
+}
+
+function createSendGauge() {
+  if (sendGauge) sendGauge.dispose();
+  sendGauge = echarts.init(document.querySelector('.send-count'));
+  sendGauge.setOption({
+    series: [{
+      type: 'gauge', max: 100,
+      progress: { show: true, roundCap: true, itemStyle: { color: '#3CB2FF' } },
+      pointer: { itemStyle: { color: '#3CB2FF' } },
+      axisLine: { roundCap: true, lineStyle: { color: [[1, '#E6EBF8']] } },
+      splitLine: { lineStyle: { color: '#CFD3DC' } },
+      axisTick: { lineStyle: { color: '#909399' } },
+      detail: { valueAnimation: true, formatter: '{value}', color: '#303133' },
+      data: [{ value: daySendTotal, name: '總計' }]
+    }],
+    color: ['#3CB2FF']
+  });
 }
 
 // ========== 工具函數 ==========
@@ -405,16 +666,14 @@ function getStatusText(status) {
 // ========== 初始化 ==========
 onMounted(async () => {
   await loadDomains();
-  await loadTemplates();
   await loadSchedules();
-  await loadContactGroups();
+  await loadContactGroups(domainStore.currentDomainId);
 });
 
-// 切換 Tab 時自動刷新
-import { watch } from 'vue';
 watch(activeTab, (tab) => {
   if (tab === 'template') loadTemplates();
   if (tab === 'schedule') { loadSchedules(); loadDomains(); }
+  if (tab === 'analytics') loadAnalytics();
 });
 </script>
 
@@ -455,5 +714,105 @@ watch(activeTab, (tab) => {
   font-size: 12px;
   color: #999;
   margin-left: 4px;
+}
+
+/* ========== Analytics Tab ========== */
+.analytics-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.analytics-wrapper .number {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.analytics-wrapper .number-item {
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color);
+  padding: 21px 20px;
+}
+
+.analytics-wrapper .number-item .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.analytics-wrapper .number-item .left > div:first-child {
+  font-size: 15px;
+  color: var(--el-text-color-regular);
+}
+
+.analytics-wrapper .number-item .delete-ratio {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+}
+
+.analytics-wrapper .number-item .delete-ratio .normal { color: var(--el-color-success); font-weight: bold; }
+.analytics-wrapper .number-item .delete-ratio .deleted { color: var(--el-color-danger); font-weight: bold; }
+
+.analytics-wrapper .count-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+}
+
+.analytics-wrapper .picture {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.analytics-wrapper .picture-item {
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color);
+  padding: 20px;
+}
+
+.analytics-wrapper .picture-item .title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.analytics-wrapper .sender-pie { height: 300px; }
+.analytics-wrapper .increase-line { height: 300px; }
+
+.analytics-wrapper .picture-cs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.analytics-wrapper .picture-cs-item {
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color);
+  padding: 20px;
+}
+
+.analytics-wrapper .picture-cs-item .title {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 15px;
+}
+
+.analytics-wrapper .email-column { height: 300px; }
+.analytics-wrapper .send-count { height: 300px; }
+
+@media (max-width: 1024px) {
+  .analytics-wrapper .number { grid-template-columns: 1fr 1fr; }
+  .analytics-wrapper .picture, .analytics-wrapper .picture-cs { grid-template-columns: 1fr; }
 }
 </style>

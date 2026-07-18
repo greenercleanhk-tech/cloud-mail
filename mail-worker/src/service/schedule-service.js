@@ -72,12 +72,23 @@ const scheduleService = {
     /**
      * 創建排程任務
      * 自動拆分子任務並分配到各帳號
+     * contactGroupIds: 數組，如 [1, 2, 3]
      */
     async create(c, params, userId) {
-        const { name, domainId, templateId, contactGroupId, totalRecipients, scheduledAt } = params;
+        const { name, domainId, templateId, contactGroupIds, totalRecipients, scheduledAt } = params;
 
-        if (!name || !domainId || !templateId || !contactGroupId || !totalRecipients || !scheduledAt) {
+        if (!name || !domainId || !templateId || !contactGroupIds || !totalRecipients || !scheduledAt) {
             throw new BizError(t('scheduleFieldRequired'));
+        }
+
+        // 解析通訊組（支持新格式數組或舊格式單值）
+        let groupIdArr = [];
+        if (Array.isArray(contactGroupIds)) {
+            groupIdArr = contactGroupIds.map(Number);
+        } else if (typeof contactGroupIds === 'string') {
+            try { groupIdArr = JSON.parse(contactGroupIds).map(Number); } catch { groupIdArr = [Number(contactGroupIds)]; }
+        } else {
+            groupIdArr = [Number(contactGroupIds)];
         }
 
         // 驗證模板存在
@@ -91,16 +102,18 @@ const scheduleService = {
             .get();
         if (!template) throw new BizError(t('templateNotFound'));
 
-        // 驗證通訊組存在
-        const group = await orm(c)
-            .select()
+        // 驗證所有通訊組存在
+        const groups = await orm(c)
+            .select({ groupId: contactGroup.groupId })
             .from(contactGroup)
             .where(and(
-                eq(contactGroup.groupId, Number(contactGroupId)),
+                inArray(contactGroup.groupId, groupIdArr),
                 eq(contactGroup.isDel, 0)
             ))
-            .get();
-        if (!group) throw new BizError(t('contactGroupNotFound'));
+            .all();
+        if (groups.length !== groupIdArr.length) {
+            throw new BizError(t('contactGroupNotFound'));
+        }
 
         // 獲取該域名下所有帳號
         const accounts = await orm(c)
@@ -116,14 +129,14 @@ const scheduleService = {
             throw new BizError(t('noAccountInDomain'));
         }
 
-        // 創建 job
+        // 創建 job，contactGroupId 存為 JSON 數組字串
         const job = await orm(c)
             .insert(scheduleJob)
             .values({
                 name,
                 domainId: Number(domainId),
                 templateId: Number(templateId),
-                contactGroupId: Number(contactGroupId),
+                contactGroupId: JSON.stringify(groupIdArr),
                 totalRecipients: Number(totalRecipients),
                 status: 'pending',
                 scheduledAt,
@@ -255,12 +268,25 @@ const scheduleService = {
             .where(eq(emailTemplate.templateId, job.templateId))
             .get();
 
-        // 查該組的聯繫人（只取這段範圍內的）
+        // 解析多個通訊組 ID（contactGroupId 存為 JSON 數組）
+        let groupIdArr = [];
+        try {
+            const raw = job.contactGroupId;
+            if (Array.isArray(raw)) {
+                groupIdArr = raw;
+            } else if (typeof raw === 'string') {
+                groupIdArr = JSON.parse(raw);
+            } else {
+                groupIdArr = [raw];
+            }
+        } catch { groupIdArr = [job.contactGroupId]; }
+
+        // 查所有組的聯繫人（只取這段範圍內的）
         const contacts = await orm(c)
             .select()
             .from(contact)
             .where(and(
-                eq(contact.groupId, job.contactGroupId),
+                inArray(contact.groupId, groupIdArr),
                 eq(contact.isDel, 0)
             ))
             .orderBy(contact.contactId)

@@ -9,7 +9,7 @@ export const scheduleJob = sqliteTable('schedule_job', {
     name: text('name').notNull(),                  // 任務名稱，如「夏季優惠」
     domainId: integer('domain_id').notNull(),       // 所屬域名
     templateId: integer('template_id').notNull(),   // 所屬模板
-    contactGroupId: integer('contact_group_id').notNull(), // 通訊組 ID
+    contactGroupId: text('contact_group_id').notNull(), // 通訊組 ID（JSON 數組，如 "[1,2,3]"）
     totalRecipients: integer('total_recipients').notNull(), // 總收件人數
     sentCount: integer('sent_count').default(0).notNull(), // 已發數
     failedCount: integer('failed_count').default(0).notNull(), // 失敗數
