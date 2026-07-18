@@ -182,7 +182,7 @@ async function loadContacts() {
   loading.value = true;
   try {
     const res = await contactList({
-      domainId: domainStore.currentDomainId,
+      domainId: domainStore.currentDomainId || undefined,
       keyword: keyword.value,
       groupId: selectedGroupId.value,
       page: page.value
@@ -197,7 +197,7 @@ async function loadContacts() {
 
 async function loadGroups() {
   try {
-    const res = await groupList({ domainId: domainStore.currentDomainId });
+    const res = await groupList({ domainId: domainStore.currentDomainId || undefined });
     groups.value = res || [];
   } catch (e) {
     console.error('載入群組失敗', e);

@@ -122,7 +122,7 @@ async function loadContacts() {
   loading.value = true;
   try {
     const res = await contactList({
-      domainId: domainStore.currentDomainId,
+      domainId: domainStore.currentDomainId || undefined,
       keyword: keyword.value,
       groupId: selectedGroupId.value || undefined
     });
