@@ -464,7 +464,20 @@ function submit() {
     return
   }
 
-  if (!isEmail(addForm.email + '@' + addForm.suffix.domain)) {
+  // addForm.suffix 可能是字串（如 "@example.com"）或物件（如 {domainId, domain}）
+  // 統一取值並確保格式正確
+  let suffixStr = typeof addForm.suffix === 'string'
+      ? addForm.suffix
+      : (addForm.suffix?.domain || '');
+
+  // 取出用戶輸入中的本地部分（@ 前的內容）
+  const atIndex = addForm.email.indexOf('@');
+  const localPart = atIndex >= 0 ? addForm.email.substring(0, atIndex) : addForm.email;
+
+  // 拼接：本地部分 + 域名後綴，確保只有一個 @
+  const fullEmail = localPart + suffixStr;
+
+  if (!isEmail(fullEmail)) {
     ElMessage({
       message: t('notEmailMsg'),
       type: "error",
@@ -499,7 +512,7 @@ function submit() {
   }
 
   addLoading.value = true
-  accountAdd(addForm.email + addForm.suffix.domain, verifyToken, getDomainIdBySuffix()).then(account => {
+  accountAdd(fullEmail, verifyToken, getDomainIdBySuffix()).then(account => {
     addLoading.value = false
     showAdd.value = false
     addForm.email = ''
