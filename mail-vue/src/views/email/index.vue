@@ -24,6 +24,7 @@
 
 <script setup>
 import {useAccountStore} from "@/store/account.js";
+import {useDomainStore} from "@/store/domain.js";
 import {useEmailStore} from "@/store/email.js";
 import {useSettingStore} from "@/store/setting.js";
 import emailScroll from "@/components/email-scroll/index.vue"
@@ -42,6 +43,7 @@ defineOptions({
 const route = useRoute();
 const emailStore = useEmailStore();
 const accountStore = useAccountStore();
+const domainStore = useDomainStore();
 const settingStore = useSettingStore();
 const scroll = ref({})
 const params = reactive({
@@ -55,6 +57,10 @@ onMounted(() => {
 
 
 watch(() => accountStore.currentAccountId, () => {
+  scroll.value.refreshList();
+})
+
+watch(() => domainStore.currentDomainId, () => {
   scroll.value.refreshList();
 })
 

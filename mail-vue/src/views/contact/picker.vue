@@ -83,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { Icon } from '@iconify/vue';
 import { useDomainStore } from '@/store/domain.js';
 import { contactList, groupList } from '@/request/contact.js';
@@ -114,6 +114,17 @@ watch(() => props.modelValue, (val) => {
   }
 });
 
+function syncSelectedFromProp() {
+  // 根據已選郵箱字符串，找出對應的 contact 對象並預選
+  const selected = [];
+  contacts.value.forEach(c => {
+    if (props.selectedEmails.includes(c.email)) {
+      selected.push(c);
+    }
+  });
+  selectedContacts.value = selected;
+}
+
 watch(visible, (val) => {
   emit('update:modelValue', val);
 });
@@ -127,6 +138,8 @@ async function loadContacts() {
       groupId: selectedGroupId.value || undefined
     });
     contacts.value = res || [];
+    // 同步外部已選中的郵箱 → 轉為 contact 對象並預選
+    syncSelectedFromProp();
   } catch (e) {
     console.error('載入聯絡人失敗', e);
   } finally {
