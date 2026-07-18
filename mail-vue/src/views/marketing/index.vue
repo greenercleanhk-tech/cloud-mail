@@ -158,8 +158,8 @@ import { ref, reactive, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
 import tinyEditor from '@/components/tiny-editor/index.vue';
-import { templateList, templateAdd, templateUpdate, templateDelete } from '@/request/template.js';
-import { scheduleList, scheduleAdd, scheduleCancel } from '@/request/schedule.js';
+import { templateList as fetchTemplateList, templateAdd, templateUpdate, templateDelete } from '@/request/template.js';
+import { scheduleList as fetchScheduleList, scheduleAdd, scheduleCancel } from '@/request/schedule.js';
 import { domainList as getDomainList } from '@/request/domain.js';
 import { contactGroupList as getContactGroupList } from '@/request/contact.js';
 import { useDomainStore } from '@/store/domain.js';
@@ -188,7 +188,7 @@ async function loadTemplates() {
   if (!domainStore.currentDomainId) return;
   templateLoading.value = true;
   try {
-    const res = await templateList({ domainId: domainStore.currentDomainId });
+    const res = await fetchTemplateList({ domainId: domainStore.currentDomainId });
     templateList.value = res || [];
   } catch (e) {
     ElMessage.error('載入模板失敗');
@@ -290,7 +290,7 @@ const scheduleRules = {
 async function loadSchedules() {
   scheduleLoading.value = true;
   try {
-    const res = await scheduleList({});
+    const res = await fetchScheduleList({});
     scheduleList.value = res || [];
   } catch (e) {
     ElMessage.error('載入排程失敗');
@@ -328,7 +328,7 @@ async function onDomainChange(domainId) {
 
   try {
     const [tmpl, groups] = await Promise.all([
-      templateList({ domainId }),
+      fetchTemplateList({ domainId }),
       getContactGroupList({ domainId })
     ]);
     templateOptions.value = tmpl || [];
