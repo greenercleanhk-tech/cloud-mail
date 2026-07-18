@@ -8,7 +8,7 @@ const analysisDao = {
 	 */
 	async getDomainAccountIds(c, domainId) {
 		if (!domainId) return null; // null = 全域
-		const rows = await c.env.DB.prepare(
+		const rows = await c.env.db.prepare(
 			'SELECT account_id FROM account WHERE domain_id = ? AND is_del = 0'
 		).bind(domainId).all();
 		return rows.results.map(r => r.account_id);
@@ -74,12 +74,12 @@ const analysisDao = {
 			) a
 		`;
 
-		const { results } = await c.env.DB.prepare(sql).bind(...bindValues).all();
+		const { results } = await c.env.db.prepare(sql).bind(...bindValues).all();
 		return results[0];
 	},
 
 	async userDayCount(c, diffHours, domainId) {
-		const { results } = await c.env.DB.prepare(`
+		const { results } = await c.env.db.prepare(`
 			SELECT
 				DATE(user.create_time, '+' || ? || ' hours') AS date,
 				COUNT(DISTINCT user.user_id) AS total
@@ -102,7 +102,7 @@ const analysisDao = {
 			? `AND email.account_id IN (SELECT account_id FROM account WHERE domain_id = ${domainId} AND is_del = 0)`
 			: '';
 
-		const { results } = await c.env.DB.prepare(`
+		const { results } = await c.env.db.prepare(`
 			SELECT
 				DATE(email.create_time, '+' || ? || ' hours') AS date,
 				COUNT(*) AS total
@@ -127,7 +127,7 @@ const analysisDao = {
 			? `AND email.account_id IN (SELECT account_id FROM account WHERE domain_id = ${domainId} AND is_del = 0)`
 			: '';
 
-		const { results } = await c.env.DB.prepare(`
+		const { results } = await c.env.db.prepare(`
 			SELECT
 				DATE(email.create_time, '+' || ? || ' hours') AS date,
 				COUNT(*) AS total
