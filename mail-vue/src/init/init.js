@@ -1,10 +1,12 @@
 import {useUserStore} from "@/store/user.js";
 import {useSettingStore} from "@/store/setting.js";
 import {useAccountStore} from "@/store/account.js";
+import {useDomainStore} from "@/store/domain.js";
 import {loginUserInfo} from "@/request/my.js";
 import {permsToRouter} from "@/perm/perm.js";
 import router from "@/router";
 import {websiteConfig} from "@/request/setting.js";
+import {domainActive} from "@/request/domain.js";
 import i18n from "@/i18n/index.js";
 
 export async function init() {
@@ -13,6 +15,7 @@ export async function init() {
     const settingStore = useSettingStore();
     const userStore = useUserStore();
     const accountStore = useAccountStore();
+    const domainStore = useDomainStore();
 
     const token = localStorage.getItem('token');
     if (!settingStore.lang) {
@@ -31,10 +34,18 @@ export async function init() {
             return null;
         });
 
-        const [s, user] = await Promise.all([websiteConfig(), userPromise]);
+        // 並行：加載網站配置 + 登錄信息 + 域名列表（從數據庫）
+        const [s, user, domainList] = await Promise.all([
+            websiteConfig(),
+            userPromise,
+            domainActive().catch(() => [])
+        ]);
         setting = s;
         settingStore.settings = setting;
+        // settingStore.domainList 保持網站配置中的字符串格式（給 sys-setting / 登錄頁使用）
         settingStore.domainList = setting.domainList;
+        // domainStore.domainList 使用數據庫中的域名對象列表（給 account/index.vue 使用）
+        domainStore.setDomainList(domainList || []);
         document.title = setting.title;
 
         if (user) {
@@ -51,7 +62,7 @@ export async function init() {
     } else {
         setting = await websiteConfig();
         settingStore.settings = setting;
-        settingStore.domainList = setting.domainList;
+        // 無 token 時保持網站配置中的字符串格式（登錄頁使用）
         document.title = setting.title;
     }
 }

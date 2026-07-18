@@ -155,7 +155,7 @@ const emailStore = useEmailStore();
 const domainStore = useDomainStore();
 const showAdd = ref(false)
 const addLoading = ref(false);
-const domainList = computed(() => settingStore.domainList)
+const domainList = computed(() => domainStore.domainList)
 const accounts = reactive([])
 const noLoading = ref(false)
 const loading = ref(false)
@@ -196,7 +196,7 @@ watch(() => accountStore.changeUserAccountName, () => {
   accounts[0].name = accountStore.changeUserAccountName
 })
 
-watch(() => settingStore.domainList, (list) => {
+watch(() => domainStore.domainList, (list) => {
   if (!addForm.suffix && list.length > 0) {
     addForm.suffix = list[0]  // 完整 domain 對象
   }
@@ -362,7 +362,7 @@ function changeAccount(account) {
 }
 
 function add() {
-  addForm.suffix = addForm.suffix || settingStore.domainList[0]
+  addForm.suffix = addForm.suffix || domainStore.domainList[0]
   showAdd.value = true
   setTimeout(() => {
     addRef.value.focus()
