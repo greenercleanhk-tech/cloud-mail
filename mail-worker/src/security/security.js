@@ -115,20 +115,27 @@ app.use('*', async (c, next) => {
 
 	const jwt = c.req.header(constant.TOKEN_HEADER);
 
+	console.log('security debug - jwt:', jwt ? jwt.substring(0, 50) + '...' : 'null');
 	const result = await jwtUtils.verifyToken(c, jwt);
+	console.log('security debug - verifyResult:', result);
 
 	if (!result) {
+		console.log('security debug - FAIL: jwt verify null');
 		throw new BizError(t('authExpired'), 401);
 	}
 
 	const { userId, token } = result;
+	console.log('security debug - userId:', userId, 'token:', token);
 	const authInfo = await c.env.kv.get(KvConst.AUTH_INFO + userId, { type: 'json' });
+	console.log('security debug - authInfo:', JSON.stringify(authInfo));
 
 	if (!authInfo) {
+		console.log('security debug - FAIL: no authInfo in KV');
 		throw new BizError(t('authExpired'), 401);
 	}
 
 	if (!authInfo.tokens.includes(token)) {
+		console.log('security debug - FAIL: token not in KV tokens list', authInfo.tokens);
 		throw new BizError(t('authExpired'), 401);
 	}
 
