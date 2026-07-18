@@ -278,6 +278,83 @@ const contactService = {
             ...g,
             memberCount: contacts.find(c => c.groupId === g.groupId)?.count || 0
         }));
+    },
+
+    // ==================== 退訂管理 ====================
+
+    /**
+     * 標記退訂（按 email 查找並更新）
+     */
+    async unsubscribe(c, email) {
+        const row = await orm(c)
+            .select({ contactId: contact.contactId })
+            .from(contact)
+            .where(eq(contact.email, email))
+            .get();
+        if (!row) throw new BizError('聯絡人不存在');
+        await orm(c)
+            .update(contact)
+            .set({ isUnsubscribed: 1 })
+            .where(eq(contact.contactId, row.contactId))
+            .run();
+    },
+
+    /**
+     * 重新訂閱（按 email 查找並更新）
+     */
+    async resubscribe(c, email) {
+        const row = await orm(c)
+            .select({ contactId: contact.contactId })
+            .from(contact)
+            .where(eq(contact.email, email))
+            .get();
+        if (!row) throw new BizError('聯絡人不存在');
+        await orm(c)
+            .update(contact)
+            .set({ isUnsubscribed: 0 })
+            .where(eq(contact.contactId, row.contactId))
+            .run();
+    },
+
+    /**
+     * 查詢退訂名單
+     */
+    async unsubscribeList(c, params = {}) {
+        const { userId, domainId, keyword, page = 1, size = 50 } = params;
+        let query = orm(c)
+            .select()
+            .from(contact)
+            .where(and(
+                eq(contact.userId, userId),
+                eq(contact.isUnsubscribed, 1),
+                eq(contact.isDel, 0)
+            ));
+        if (keyword) {
+            query = orm(c)
+                .select()
+                .from(contact)
+                .where(and(
+                    eq(contact.userId, userId),
+                    eq(contact.isUnsubscribed, 1),
+                    eq(contact.isDel, 0),
+                    or(
+                        like(contact.name, `%${keyword}%`),
+                        like(contact.email, `%${keyword}%`)
+                    )
+                ));
+        }
+        const offset = (Number(page) - 1) * Number(size);
+        const list = await query.orderBy(contact.createTime).offset(offset).limit(Number(size)).all();
+        const total = await orm(c)
+            .select({ count: count() })
+            .from(contact)
+            .where(and(
+                eq(contact.userId, userId),
+                eq(contact.isUnsubscribed, 1),
+                eq(contact.isDel, 0)
+            ))
+            .get();
+        return { list, total: total.count };
     }
 };
 

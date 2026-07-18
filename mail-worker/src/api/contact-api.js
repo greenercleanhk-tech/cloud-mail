@@ -99,3 +99,46 @@ app.delete('/contact/group/delete', async (c) => {
     await contactService.groupDelete(c, c.req.query(), userId);
     return c.json(result.ok());
 });
+
+/**
+ * 退訂接口（公開，contact 點擊郵件中的連結觸發）
+ * GET /contact/unsubscribe?token=<base64 email>
+ */
+app.get('/contact/unsubscribe', async (c) => {
+    const { token } = c.req.query();
+    if (!token) {
+        return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>無效連結</h2><p>退訂連結無效，請聯繫我們。</p></body></html>');
+    }
+    try {
+        const email = Buffer.from(token, 'base64').toString('utf-8');
+        await contactService.unsubscribe(c, email);
+        return c.html(`<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+            <h2>✅ 退訂成功</h2>
+            <p style="color:#666">您已成功退訂營銷郵件。<br>您不會再收到我們的推廣郵件。</p>
+            <p style="color:#999;font-size:12px;margin-top:20px">If you prefer English, you have been successfully unsubscribed.</p>
+        </body></html>`);
+    } catch (e) {
+        return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>退訂失敗</h2><p>請稍後再試，或聯繫我們。</p></body></html>');
+    }
+});
+
+/**
+ * 重新訂閱接口（公開）
+ * GET /contact/resubscribe?token=<base64 email>
+ */
+app.get('/contact/resubscribe', async (c) => {
+    const { token } = c.req.query();
+    if (!token) {
+        return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>無效連結</h2></body></html>');
+    }
+    try {
+        const email = Buffer.from(token, 'base64').toString('utf-8');
+        await contactService.resubscribe(c, email);
+        return c.html(`<html><body style="font-family:sans-serif;text-align:center;padding:40px">
+            <h2>✅ 已重新訂閱</h2>
+            <p style="color:#666">您已恢復訂閱。</p>
+        </body></html>`);
+    } catch (e) {
+        return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>操作失敗</h2></body></html>');
+    }
+});

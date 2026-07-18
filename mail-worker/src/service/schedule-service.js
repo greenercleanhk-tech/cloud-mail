@@ -281,13 +281,14 @@ const scheduleService = {
             }
         } catch { groupIdArr = [job.contactGroupId]; }
 
-        // 查所有組的聯繫人（只取這段範圍內的）
+        // 查所有組的聯繫人（只取這段範圍內的，同時過濾已退訂者）
         const contacts = await orm(c)
             .select()
             .from(contact)
             .where(and(
                 inArray(contact.groupId, groupIdArr),
-                eq(contact.isDel, 0)
+                eq(contact.isDel, 0),
+                eq(contact.isUnsubscribed, 0)
             ))
             .orderBy(contact.contactId)
             .offset(task.recipientStart)
@@ -318,13 +319,21 @@ const scheduleService = {
 
         for (const con of contacts) {
             try {
+                // 自動追加退訂連結（Base64 編碼 email 作為 token）
+                const token = Buffer.from(con.email).toString('base64');
+                const unsubLink = `${c.env.KV_URL || 'https://' + accountRow.email.split('@')[1]}/unsubscribe?token=${token}`;
+                const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
+                    <a href="${unsubLink}" style="color:#999;text-decoration:underline;">退訂電子報</a>
+                </div>`;
+                const htmlWithUnsub = template.content + unsubHtml;
+
                 await emailService.sendByResend(resendToken, {
                     name: template.name,
                     accountEmail: accountRow.email,
                     receiveEmail: [con.email],
                     subject: template.subject,
                     text: '',
-                    html: template.content,
+                    html: htmlWithUnsub,
                     attachments: []
                 });
                 sent++;

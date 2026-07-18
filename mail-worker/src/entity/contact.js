@@ -11,9 +11,10 @@ export const contact = sqliteTable('contacts', {
     groupId: integer('group_id').default(0),       // 所屬群組，0=無群組
     domainId: integer('domain_id').notNull(),     // 所屬域名
     userId: integer('user_id').notNull(),         // 所屬用戶
-    remark: text('remark').default(''),            // 備註
+    remark: text('remark').default(''),              // 備註
+    isUnsubscribed: integer('is_unsubscribed').default(0).notNull(),  // 退訂標記
     createTime: text('create_time').default(sql`datetime('now', 'localtime')`).notNull(),
-    isDel: integer('is_del').default(0).notNull()  // 軟刪除
+    isDel: integer('is_del').default(0).notNull()  // 軟创除
 });
 
 export const contactGroup = sqliteTable('contact_groups', {
