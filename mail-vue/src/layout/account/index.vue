@@ -465,21 +465,27 @@ function submit() {
   }
 
   // addForm.suffix 可能是字串（如 "@example.com"）或物件（如 {domainId, domain}）
-  // 統一取值並確保格式正確
-  let suffixStr = typeof addForm.suffix === 'string'
+  // 統一取值：suffix 可能是字串（如 "@parkin.hk"）或物件（如 {domain: "parkin.hk"}）
+  let suffixRaw = typeof addForm.suffix === 'string'
       ? addForm.suffix
       : (addForm.suffix?.domain || '');
 
-  // 兜底：若 suffixStr 仍然為空，嘗試從 domainStore 取第一個域名
-  if (!suffixStr && domainStore.domainList.length > 0) {
-    suffixStr = domainStore.domainList[0].domain || '';
+  // 確保前綴有 @
+  let suffixStr = suffixRaw.startsWith('@') ? suffixRaw : ('@' + suffixRaw);
+
+  // 兜底：若 suffixStr 仍為空，嘗試從 domainStore 取第一個域名
+  if (!suffixStr || suffixStr === '@') {
+    if (domainStore.domainList.length > 0) {
+      const firstDomain = domainStore.domainList[0].domain || '';
+      suffixStr = firstDomain.startsWith('@') ? firstDomain : ('@' + firstDomain);
+    }
   }
 
   // 取出用戶輸入中的本地部分（@ 前的內容）
   const atIndex = addForm.email.indexOf('@');
   const localPart = atIndex >= 0 ? addForm.email.substring(0, atIndex) : addForm.email;
 
-  // 拼接：本地部分 + 域名後綴，確保只有一個 @
+  // 拼接：本地部分 + 域名後綴（suffixStr 已有 @）
   const fullEmail = localPart + suffixStr;
 
   if (!suffixStr) {
