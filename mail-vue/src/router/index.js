@@ -71,6 +71,56 @@ const routes = [
                     menu: true
                 }
             },
+            {
+                path: '/send',
+                name: 'send',
+                component: () => import('@/views/send/index.vue'),
+                meta: {
+                    title: 'sent',
+                    name: 'send',
+                    menu: true
+                }
+            },
+            {
+                path: '/draft',
+                name: 'draft',
+                component: () => import('@/views/draft/index.vue'),
+                meta: {
+                    title: 'drafts',
+                    name: 'draft',
+                    menu: true
+                }
+            },
+            {
+                path: '/analysis',
+                name: 'analysis',
+                component: () => import('@/views/analysis/index.vue'),
+                meta: {
+                    title: 'analytics',
+                    name: 'analysis',
+                    menu: true
+                }
+            },
+            {
+                path: '/sys-setting',
+                name: 'sys-setting',
+                component: () => import('@/views/sys-setting/index.vue'),
+                meta: {
+                    title: 'systemSettings',
+                    name: 'sys-setting',
+                    menu: true
+                }
+            },
+            {
+                path: '/all-email',
+                name: 'all-email',
+                component: () => import('@/views/all-email/index.vue'),
+                meta: {
+                    title: 'allMail',
+                    name: 'all-email',
+                    menu: true
+                }
+            },
         ]
 
     },
