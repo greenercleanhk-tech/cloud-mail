@@ -121,15 +121,19 @@ async function loadDomains() {
   loading.value = true;
   try {
     const res = await getDomainList();
-    domainList.value = res || [];
+    // 確保是陣列，防後端返回 null 時表格變空
+    const list = Array.isArray(res) ? res : [];
+    domainList.value = list;
     // 同步到 settingStore，觸發側邊欄自動刷新
-    settingStore.setDomainList(res || []);
+    settingStore.setDomainList(list);
     // 如果還沒有選中域名，自動選第一個
-    if (!domainStore.currentDomainId && domainList.value.length > 0) {
-      domainStore.setCurrentDomain(domainList.value[0].domainId);
+    if (!domainStore.currentDomainId && list.length > 0) {
+      domainStore.setCurrentDomain(list[0].domainId);
     }
+    // 除錯：載入後即時比對長度
+    console.debug('[domain] loadDomains =>', list.length, 'domains', list.map(d => d.domain));
   } catch (e) {
-    ElMessage.error('載入域名失敗');
+    ElMessage.error('載入域名失敗：' + (e.message || String(e)));
   } finally {
     loading.value = false;
   }

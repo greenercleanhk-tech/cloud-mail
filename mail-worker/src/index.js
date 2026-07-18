@@ -6,6 +6,7 @@ import emailService from './service/email-service';
 import kvObjService from './service/kv-obj-service';
 import oauthService from "./service/oauth-service";
 import analysisService from './service/analysis-service';
+import scheduleService from './service/schedule-service';
 export default {
 	 async fetch(req, env, ctx) {
 
@@ -25,15 +26,17 @@ export default {
 	},
 	email: email,
 	async scheduled(c, env, ctx) {
-		if (c.cron === '*/30 * * * *') {
-			await analysisService.refreshEchartsCache({ env })
-			return;
-		}
+		// 每分鐘：處理排程任務
+		await scheduleService.processScheduledJobs(c);
 
-		await verifyRecordService.clearRecord({ env })
-		await userService.resetDaySendCount({ env })
-		await emailService.completeReceiveAll({ env })
-		await oauthService.clearNoBindOathUser({ env })
-		await analysisService.refreshEchartsCache({ env })
+		// 每天 16:00 UTC：清理任務
+		if (c.cron === '0 16 * * *') {
+			await analysisService.refreshEchartsCache({ env })
+			await verifyRecordService.clearRecord({ env })
+			await userService.resetDaySendCount({ env })
+			await emailService.completeReceiveAll({ env })
+			await oauthService.clearNoBindOathUser({ env })
+			await analysisService.refreshEchartsCache({ env })
+		}
 	},
 };

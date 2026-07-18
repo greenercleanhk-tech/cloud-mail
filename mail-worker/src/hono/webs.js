@@ -23,4 +23,6 @@ import '../api/oauth-api'
 import '../api/domain-api'
 import '../api/contact-api'
 import '../api/admin-api'
+import '../api/template-api'
+import '../api/schedule-api'
 export default app;

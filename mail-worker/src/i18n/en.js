@@ -99,7 +99,14 @@ const en = {
 		"系统设置": "System Settings",
 		"设置查看": "View Settings",
 		"设置修改": "Change Settings",
-		"发件重置": "Reset Send Count"
+		"发件重置": "Reset Send Count",
+		'templateFieldRequired': 'Template name, subject and content are required',
+		'templateIdRequired': 'Template ID is required',
+		'templateNotFound': 'Template not found',
+		'contactGroupNotFound': 'Contact group not found',
+		'scheduleFieldRequired': 'Name, domain, template, group, count and time are required',
+		'noAccountInDomain': 'No available sending accounts in this domain',
+		'noRecipient': 'Recipient count is 0'
 	}
 };
 

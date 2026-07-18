@@ -99,7 +99,14 @@ const zh = {
 		"系统设置": "系统设置",
 		"设置查看": "设置查看",
 		"设置修改": "设置修改",
-		'发件重置': '发件重置'
+		'发件重置': '发件重置',
+		'templateFieldRequired': '模板名称、标题和内容不能为空',
+		'templateIdRequired': '模板ID不能为空',
+		'templateNotFound': '模板不存在',
+		'contactGroupNotFound': '通讯组不存在',
+		'scheduleFieldRequired': '任务名称、域名、模板、通讯组、数量和发送时间不能为空',
+		'noAccountInDomain': '该域名下没有可用的发件邮箱',
+		'noRecipient': '收件人数量为0'
 	}
 }
 
