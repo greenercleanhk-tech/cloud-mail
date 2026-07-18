@@ -7,6 +7,10 @@
         <Icon icon="carbon:add" />
         {{ $t('addDomain') }}
       </el-button>
+      <el-button type="success" @click="showBatchAddDialog = true" :disabled="domainList.length === 0">
+        <Icon icon="carbon:add" />
+        {{ $t('batchAddAccounts') }}
+      </el-button>
     </div>
 
     <!-- 域名列表 -->
@@ -79,14 +83,52 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量添加郵箱對話框 -->
+    <el-dialog v-model="showBatchAddDialog" :title="$t('batchAddAccounts')" width="580px">
+      <div style="margin-bottom: 12px;">
+        <span style="font-size:13px;color:#666;margin-right:8px;">{{ $t('selectDomain') }}：</span>
+        <el-select v-model="batchForm.domainId" style="width: 260px;">
+          <el-option
+            v-for="d in domainList"
+            :key="d.domainId"
+            :label="d.domain"
+            :value="d.domainId"
+          />
+        </el-select>
+      </div>
+
+      <el-input
+        v-model="batchForm.prefixes"
+        type="textarea"
+        :rows="8"
+        :placeholder="$t('batchEmailPlaceholder')"
+        style="font-family: monospace"
+      />
+
+      <!-- 預覽 -->
+      <div v-if="batchPreview.length" style="margin-top: 10px; font-size: 12px; color: #67c23a; line-height: 1.6; word-break: break-all;">
+        <div style="color:#999; margin-bottom:4px;">{{ $t('batchPreview') }} ({{ batchPreview.length }}{{ $t('accounts') }})：</div>
+        <span v-for="(e, i) in batchPreview.slice(0, 15)" :key="i">{{ e }}<br/></span>
+        <span v-if="batchPreview.length > 15" style="color:#999">...{{ $t('andMore', { n: batchPreview.length - 15 }) }}</span>
+      </div>
+
+      <template #footer>
+        <el-button @click="showBatchAddDialog = false">{{ $t('cancel') }}</el-button>
+        <el-button type="success" @click="handleBatchAdd" :loading="batchLoading" :disabled="batchPreview.length === 0">
+          {{ $t('confirmAdd') }} ({{ batchPreview.length }})
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
 import { domainList as getDomainList, domainAdd, domainUpdate, domainDelete } from '@/request/domain.js';
+import { accountAdd } from '@/request/account.js';
 import { useSettingStore } from '@/store/setting.js';
 import { useDomainStore } from '@/store/domain.js';
 
@@ -98,6 +140,26 @@ const submitting = ref(false);
 const domainList = ref([]);
 const showAddDialog = ref(false);
 const editingDomain = ref(null);
+const showBatchAddDialog = ref(false);
+const batchLoading = ref(false);
+const batchForm = reactive({
+  domainId: null,
+  prefixes: ''
+});
+
+// 批量預覽：把前綴加上域名後綴
+const batchPreview = computed(() => {
+  if (!batchForm.prefixes.trim() || !batchForm.domainId) return [];
+  const domainRow = domainList.value.find(d => d.domainId === batchForm.domainId);
+  if (!domainRow) return [];
+  const suffix = '@' + domainRow.domain;
+  return batchForm.prefixes
+    .split('\n')
+    .map(s => s.trim())
+    .filter(s => s && !s.startsWith('#'))
+    .map(p => (p.includes('@') ? p : p + suffix))
+    .filter(e => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/.test(e));
+});
 
 const formData = reactive({
   domain: '',
@@ -207,6 +269,40 @@ function resetForm() {
     resendApiKey: '',
     isActive: 1
   });
+}
+
+// 批量添加郵箱
+async function handleBatchAdd() {
+  const emails = batchPreview.value;
+  if (!emails.length) {
+    ElMessage.warning('請輸入有效的郵箱前綴');
+    return;
+  }
+  batchLoading.value = true;
+  let success = 0, failed = 0;
+  const failedList = [];
+  for (const email of emails) {
+    try {
+      await accountAdd(email, '', batchForm.domainId);
+      success++;
+    } catch (e) {
+      failed++;
+      failedList.push(email);
+    }
+    // 防流控
+    await new Promise(r => setTimeout(r, 300));
+  }
+  batchLoading.value = false;
+  showBatchAddDialog.value = false;
+  batchForm.prefixes = '';
+  ElMessage({
+    message: `成功添加 ${success} 個${failed > 0 ? `，失敗 ${failed} 個` : ''}`,
+    type: failed > 0 ? 'warning' : 'success',
+    plain: true,
+  });
+  if (failedList.length) {
+    console.warn('失敗郵箱：', failedList);
+  }
 }
 
 onMounted(() => {
