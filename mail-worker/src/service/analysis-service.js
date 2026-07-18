@@ -44,15 +44,14 @@ const analysisService = {
 
 		const { timeZone, domainId } = params;
 
+		let utcDate = dayjs().utc().startOf('day');
 		let localDate = utcDate.tz(timeZone);
 
-		utcDate = dayjs(utcDate.format('YYYY-MM-DD HH:mm:ss'))
-
-		localDate = dayjs(localDate.format('YYYY-MM-DD HH:mm:ss'))
+		const utcFormatted = dayjs(utcDate.format('YYYY-MM-DD HH:mm:ss'));
+		const localFormatted = dayjs(localDate.format('YYYY-MM-DD HH:mm:ss'));
 
 		//获取时差
-		const diffHours = localDate.diff(utcDate, 'hour',true);
-
+		const diffHours = localFormatted.diff(utcFormatted, 'hour', true);
 
 		const [
 			numberCount,
