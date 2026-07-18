@@ -433,7 +433,34 @@ const en = {
     domainSelector: 'Current Domain',
     switchDomain: 'Switch Domain',
     noDomains: 'No domains yet, please add a domain first',
-    totalContacts: '{count} contacts'
+    totalContacts: '{count} contacts',
+
+    // ---------- Marketing Center ----------
+    marketingCenter: 'Marketing Center',
+    emailTemplates: 'Email Templates',
+    sendSchedule: 'Send Schedule',
+    addTemplate: 'Add Template',
+    editTemplate: 'Edit Template',
+    templateName: 'Template Name',
+    templateNamePlaceholder: 'e.g. Summer Promotion',
+    subjectPlaceholder: 'Enter email subject',
+    selectDomainPlaceholder: 'Select a domain',
+    selectTemplatePlaceholder: 'Select a template',
+    selectContactGroupPlaceholder: 'Select a contact group',
+    taskName: 'Task Name',
+    taskNamePlaceholder: 'e.g. July Campaign',
+    selectDomain: 'Domain',
+    selectTemplate: 'Template',
+    selectContactGroup: 'Contact Group',
+    recipientCount: 'Recipients',
+    sendTime: 'Send Time',
+    selectSendTimePlaceholder: 'Select scheduled send time',
+    addToSchedule: 'Add to Schedule',
+    scheduleList: 'Schedule List',
+    progress: 'Progress',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+    content: 'Content'
 }
 
 export default en

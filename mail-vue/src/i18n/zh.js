@@ -433,6 +433,33 @@ const zh = {
     domainSelector: '當前域名',
     switchDomain: '切換域名',
     noDomains: '暫無域名，請先添加域名',
-    totalContacts: '通訊錄共 {count} 個'
+    totalContacts: '通訊錄共 {count} 個',
+
+    // ---------- 營銷中心 ----------
+    marketingCenter: '營銷中心',
+    emailTemplates: '郵件模板',
+    sendSchedule: '發件排程',
+    addTemplate: '新增模板',
+    editTemplate: '編輯模板',
+    templateName: '模板名稱',
+    templateNamePlaceholder: '如：夏季優惠通知',
+    subjectPlaceholder: '輸入郵件主題',
+    selectDomainPlaceholder: '請選擇域名',
+    selectTemplatePlaceholder: '請選擇模板',
+    selectContactGroupPlaceholder: '請選擇通訊組',
+    taskName: '任務名稱',
+    taskNamePlaceholder: '如：7月推廣',
+    selectDomain: '選擇域名',
+    selectTemplate: '選擇模板',
+    selectContactGroup: '選擇通訊組',
+    recipientCount: '收件人數量',
+    sendTime: '發送時間',
+    selectSendTimePlaceholder: '選擇計劃發送時間',
+    addToSchedule: '加入排程',
+    scheduleList: '排程列表',
+    progress: '進度',
+    completed: '已完成',
+    cancelled: '已取消',
+    content: '內容'
 }
 export default zh

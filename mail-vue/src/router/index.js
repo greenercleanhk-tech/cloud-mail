@@ -121,6 +121,16 @@ const routes = [
                     menu: true
                 }
             },
+            {
+                path: '/marketing',
+                name: 'marketing',
+                component: () => import('@/views/marketing/index.vue'),
+                meta: {
+                    title: 'marketingCenter',
+                    name: 'marketing',
+                    menu: true
+                }
+            },
         ]
 
     },

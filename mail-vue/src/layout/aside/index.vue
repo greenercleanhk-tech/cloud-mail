@@ -128,6 +128,15 @@
           <span class="menu-name" style="margin-left: 22px">{{ $t('systemSettings') }}</span>
         </el-menu-item>
 
+        <!-- 營銷中心 -->
+        <el-menu-item
+          @click="router.push({ name: 'marketing' })"
+          :class="{ 'choose-item': route.meta.name === 'marketing' }"
+        >
+          <Icon icon="carbon:campaign" width="20" height="20" />
+          <span class="menu-name" style="margin-left: 21px">{{ $t('marketingCenter') }}</span>
+        </el-menu-item>
+
       </el-menu>
     </div>
   </el-scrollbar>
