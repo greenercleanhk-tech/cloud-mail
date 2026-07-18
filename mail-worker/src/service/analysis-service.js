@@ -61,7 +61,7 @@ const analysisService = {
 			sendDayCountRaw,
 			daySendTotalRaw
 		] = await Promise.all([
-			analysisDao.numberCount(c),
+			analysisDao.numberCount(c, domainId),
 
 			orm(c)
 				.select({ name: email.name, total: count() })
@@ -70,17 +70,16 @@ const analysisService = {
 					eq(email.type, emailConst.type.RECEIVE),
 					isNotNull(email.name),
 					ne(email.name, 'noreply'),
-					ne(email.name, ''),
-					domainId ? eq(email.domainId, Number(domainId)) : sql`1=1`
+					ne(email.name, '')
 				))
 				.groupBy(email.name)
 				.orderBy(desc(count()))
 				.limit(6),
 
 
-			analysisDao.userDayCount(c, diffHours),
-			analysisDao.receiveDayCount(c, diffHours),
-			analysisDao.sendDayCount(c, diffHours),
+			analysisDao.userDayCount(c, diffHours, domainId),
+			analysisDao.receiveDayCount(c, diffHours, domainId),
+			analysisDao.sendDayCount(c, diffHours, domainId),
 
 			c.env.kv.get(kvConst.SEND_DAY_COUNT + dayjs().format('YYYY-MM-DD')),
 		]);
