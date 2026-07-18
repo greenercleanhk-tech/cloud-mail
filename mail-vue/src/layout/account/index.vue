@@ -200,6 +200,8 @@ watch(() => settingStore.domainList, (list) => {
 // 監聽域名切換 → 重新載入該域名的帳號列表
 watch(() => domainStore.currentDomainId, (newDomainId) => {
   if (newDomainId) {
+    accountStore.currentAccountId = 0;
+    accountStore.currentAccount = {};
     accounts.length = 0;
     noLoading.value = false;
     getAccountList();
@@ -409,7 +411,7 @@ function getAccountList() {
   const accountId = accounts.length > 0 ? accounts.at(-1).accountId : 0;
   const lastSort = accounts.length > 0 ? accounts.at(-1).sort : null;
 
-  accountList(accountId, queryParams.size, lastSort).then(async list => {
+  accountList(accountId, queryParams.size, lastSort, domainStore.currentDomainId).then(async list => {
 
     let end = Date.now();
     let duration = end - start;

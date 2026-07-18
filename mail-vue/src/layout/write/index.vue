@@ -82,6 +82,7 @@ import ContactPicker from '@/views/contact/picker.vue'
 import {h, nextTick, onMounted, onUnmounted, reactive, ref, toRaw, computed} from "vue";
 import {Icon} from "@iconify/vue";
 import {useUserStore} from "@/store/user.js";
+import {useDomainStore} from "@/store/domain.js";
 import {emailSend} from "@/request/email.js";
 import {isEmail} from "@/utils/verify-utils.js";
 import {useAccountStore} from "@/store/account.js";
@@ -113,6 +114,7 @@ const draftStore = userDraftStore()
 const settingStore = useSettingStore()
 const emailStore = useEmailStore();
 const accountStore = useAccountStore()
+const domainStore = useDomainStore()
 const editor = ref({})
 const userStore = useUserStore();
 const show = ref(false);
@@ -458,14 +460,18 @@ function formatImage(content) {
 }
 
 function open() {
-  if (!accountStore.currentAccount.email) {
+  const currentDomainId = domainStore.currentDomainId;
+  const currentAccount = accountStore.currentAccount;
+
+  // 如果當前賬號不存在，或所屬域名與當前域名不一致，則使用 userStore 的默認賬號
+  if (!currentAccount || !currentAccount.email || currentAccount.domainId !== currentDomainId) {
     form.sendEmail = userStore.user.email;
     form.accountId = userStore.user.account.accountId;
     form.name = userStore.user.name;
   } else {
-    form.sendEmail = accountStore.currentAccount.email;
-    form.accountId = accountStore.currentAccount.accountId;
-    form.name = accountStore.currentAccount.name;
+    form.sendEmail = currentAccount.email;
+    form.accountId = currentAccount.accountId;
+    form.name = currentAccount.name;
   }
   show.value = true;
   editor.value.focus()
