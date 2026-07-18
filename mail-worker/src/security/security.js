@@ -113,7 +113,8 @@ app.use('*', async (c, next) => {
 	}
 
 
-	const jwt = c.req.header(constant.TOKEN_HEADER);
+	const rawJwt = c.req.header(constant.TOKEN_HEADER);
+	const jwt = rawJwt ? rawJwt.replace(/^Bearer\s+/i, '') : null;
 
 	console.log('security debug - jwt:', jwt ? jwt.substring(0, 50) + '...' : 'null');
 	const result = await jwtUtils.verifyToken(c, jwt);
