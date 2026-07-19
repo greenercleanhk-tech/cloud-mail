@@ -162,6 +162,7 @@ const emailService = {
 
 	//邮件发�?
 	async send(c, params, userId) {
+		console.log('DEBUG send() received - accountId:', params.accountId, 'userId:', userId, 'receiveEmail:', params.receiveEmail);
 
 		let {
 			accountId, //发送账号id
@@ -246,6 +247,7 @@ const emailService = {
 		if (!domainRow) {
 			domainRow = await domainService.getByDomain(c, domain);
 		}
+		console.log('DEBUG unsubLink - accountId:', accountId, 'accountDomainId:', accountRow.domainId, 'domainRow:', JSON.stringify(domainRow), 'custom_domain:', domainRow?.custom_domain);
 		const resendToken = (domainRow && domainRow.resendApiKey) ? domainRow.resendApiKey : resendTokens[domain];
 		const useCloudflareEmail = !!c.env.email;
 
