@@ -113,6 +113,7 @@ const contactService = {
      * 批量添加聯絡人
      * SQLite 有 999 SQL 變量上限，分批處理避免爆掉
      * CSV 內部重複 + 資料庫已存在的郵箱都會被過濾掉
+     * 流式去重：每 500 條查一次資料庫，不一次查出全部現有郵箱
      */
     async batchAdd(c, params, userId) {
         const { contacts, domainId } = params;
@@ -148,21 +149,36 @@ const contactService = {
         }
         console.log(`[batchAdd] CSV 內部去重後: ${csvUnique.length} 條（重複: ${csvDupCount} 條）`);
 
-        // ---------- 第二步：查詢該 domain/user 下已存在的郵箱 ----------
-        const existingRows = await orm(c).select({ email: contact.email })
-            .from(contact)
-            .where(and(
-                eq(contact.domainId, domainIdNum),
-                eq(contact.userId, userId),
-                eq(contact.isDel, 0)
-            )).all();
-        const existingEmailSet = new Set(existingRows.map(r => r.email.toLowerCase()));
-        console.log(`[batchAdd] 資料庫已存在: ${existingEmailSet.size} 個郵箱`);
+        // ---------- 第二步：流式去重，每 500 條查一次資料庫 ----------
+        const DEDUP_BATCH = 500;
+        const toInsert = [];
+        let dbDupCount = 0;
+        let checkedCount = 0;
 
-        // ---------- 第三步：過濾已存在的 ----------
-        const toInsert = csvUnique.filter(item => !existingEmailSet.has(item.email.toLowerCase()));
-        const dbDupCount = csvUnique.length - toInsert.length;
-        console.log(`[batchAdd] 實際寫入: ${toInsert.length} 條（資料庫重複: ${dbDupCount} 條）`);
+        for (let i = 0; i < csvUnique.length; i += DEDUP_BATCH) {
+            const batch = csvUnique.slice(i, i + DEDUP_BATCH);
+            const emails = batch.map(item => item.email.toLowerCase());
+
+            // 用 IN 只查這批郵箱是否已存在（高效，只返回匹配的行）
+            const placeholders = emails.map(() => '?').join(', ');
+            const existingRows = await c.env.db.prepare(
+                `SELECT email FROM contacts WHERE user_id = ? AND is_del = 0 AND email IN (${placeholders})`
+            ).bind(userId, ...emails).all();
+
+            const existingSet = new Set(existingRows.results.map(r => r.email.toLowerCase()));
+
+            for (const item of batch) {
+                const emailLower = item.email.toLowerCase();
+                if (existingSet.has(emailLower)) {
+                    dbDupCount++;
+                } else {
+                    toInsert.push(item);
+                }
+            }
+            checkedCount += batch.length;
+            console.log(`[batchAdd] 已檢查 ${checkedCount}/${csvUnique.length}，待寫入: ${toInsert.length} 條`);
+        }
+        console.log(`[batchAdd] 資料庫重複: ${dbDupCount} 條，實際寫入: ${toInsert.length} 條`);
 
         if (toInsert.length === 0) {
             return { count: 0, csvDup: csvDupCount, dbDup: dbDupCount, msg: '所有郵箱均已存在或為重複' };
