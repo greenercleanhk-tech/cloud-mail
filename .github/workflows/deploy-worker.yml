@@ -60,4 +60,8 @@ jobs:
         working-directory: ./mail-worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler deploy -c wrangler.deploy.toml
+          # 禁用 wrangler 内部缓存，强制每次重新构建
+          WRANGLER_CACHE_DIR: /tmp/wrangler-cache-none
+        run: |
+          rm -rf /tmp/wrangler-cache-none
+          npx wrangler deploy -c wrangler.deploy.toml --no-bundle
