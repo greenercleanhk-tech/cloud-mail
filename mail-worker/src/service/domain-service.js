@@ -125,7 +125,7 @@ const domainService = {
      * @returns {Promise<Object>} 新增的域名
      */
     async add(c, params) {
-        const { domain: domainName, displayName, resendApiKey } = params;
+        const { domain: domainName, displayName, resendApiKey, dailyLimit } = params;
 
         // 校驗域名格式
         if (!domainName) {
@@ -156,6 +156,7 @@ const domainService = {
                 domain: domainName,
                 displayName: displayName || domainName,
                 resendApiKey: resendApiKey || '',
+                dailyLimit: Number(dailyLimit) || 500,
                 mxStatus: 'pending',
                 spfStatus: 'pending',
                 dkimStatus: 'pending',
@@ -175,12 +176,13 @@ const domainService = {
      * @returns {Promise<void>}
      */
     async update(c, params) {
-        const { domainId, displayName, resendApiKey, customDomain, isActive, mxStatus, spfStatus, dkimStatus } = params;
+        const { domainId, displayName, resendApiKey, customDomain, dailyLimit, isActive, mxStatus, spfStatus, dkimStatus } = params;
 
         const updateData = {};
         if (displayName !== undefined) updateData.displayName = displayName;
         if (resendApiKey !== undefined) updateData.resendApiKey = resendApiKey;
         if (customDomain !== undefined) updateData.customDomain = customDomain;
+        if (dailyLimit !== undefined) updateData.dailyLimit = Number(dailyLimit) || 500;
         if (isActive !== undefined) updateData.isActive = isActive;
         if (mxStatus !== undefined) updateData.mxStatus = mxStatus;
         if (spfStatus !== undefined) updateData.spfStatus = spfStatus;
