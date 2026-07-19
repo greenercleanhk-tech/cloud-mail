@@ -18,59 +18,37 @@ const contactService = {
     async list(c, params = {}) {
         const { domainId, userId, keyword, groupId, page = 1, size = 50 } = params;
 
-        let query = orm(c)
+        // 組合所有篩選條件到同一個 query（三個 if 不再互斥）
+        const conditions = [
+            eq(contact.userId, userId),
+            eq(contact.isDel, 0),
+            domainId ? eq(contact.domainId, domainId) : sql`1=1`
+        ];
+        if (keyword) {
+            conditions.push(or(
+                like(contact.name, `%${keyword}%`),
+                like(contact.email, `%${keyword}%`)
+            ));
+        }
+        if (groupId && groupId > 0) {
+            conditions.push(eq(contact.groupId, groupId));
+        }
+
+        const query = orm(c)
             .select()
             .from(contact)
-            .where(and(
-                eq(contact.userId, userId),
-                eq(contact.isDel, 0),
-                domainId ? eq(contact.domainId, domainId) : sql`1=1`
-            ));
-
-        if (keyword) {
-            query = orm(c)
-                .select()
-                .from(contact)
-                .where(and(
-                    eq(contact.userId, userId),
-                    eq(contact.isDel, 0),
-                    domainId ? eq(contact.domainId, domainId) : sql`1=1`,
-                    or(
-                        like(contact.name, `%${keyword}%`),
-                        like(contact.email, `%${keyword}%`)
-                    )
-                ));
-        }
-
-        if (groupId && groupId > 0) {
-            query = orm(c)
-                .select()
-                .from(contact)
-                .where(and(
-                    eq(contact.userId, userId),
-                    eq(contact.groupId, groupId),
-                    eq(contact.isDel, 0),
-                    domainId ? eq(contact.domainId, domainId) : sql`1=1`
-                ));
-        }
-
-        const list = await query
+            .where(and(...conditions))
             .orderBy(sql`${contact.createTime} DESC`)
             .limit(size)
-            .offset((page - 1) * size)
-            .all();
+            .offset((page - 1) * size);
 
-        // 同時計算總數（與 list 相同過濾條件）
+        const list = await query.all();
+
+        // 總數查詢（相同過濾條件）
         const countResult = await orm(c)
             .select({ cnt: count() })
             .from(contact)
-            .where(and(
-                eq(contact.userId, userId),
-                eq(contact.isDel, 0),
-                domainId ? eq(contact.domainId, domainId) : sql`1=1`,
-                groupId && groupId > 0 ? eq(contact.groupId, groupId) : sql`1=1`,
-                keyword ? or(like(contact.name, `%${keyword}%`), like(contact.email, `%${keyword}%`)) : sql`1=1`
-            ))
+            .where(and(...conditions))
             .get();
 
         return { list, total: countResult?.cnt || 0 };

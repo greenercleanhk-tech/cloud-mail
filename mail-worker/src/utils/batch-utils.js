@@ -51,5 +51,11 @@ export async function batchInsertContacts(c, contacts, domainId, userId) {
 	await batchInsertNative(c, 'contacts', [
 		'name', 'email', 'group_id', 'domain_id', 'user_id',
 		'remark', 'is_unsubscribed', 'create_time', 'is_del'
-	], contacts, { domain_id: domainId, user_id: userId, is_del: 0, is_unsubscribed: 0 });
+	], contacts, {
+		domain_id: domainId,
+		user_id: userId,
+		is_del: 0,
+		is_unsubscribed: 0,
+		create_time: new Date().toISOString()
+	});
 }

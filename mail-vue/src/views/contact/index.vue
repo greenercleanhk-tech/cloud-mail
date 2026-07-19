@@ -642,9 +642,9 @@ function resetForm() {
   Object.assign(formData, { name: '', email: '', groupId: 0, remark: '' });
 }
 
-onMounted(() => {
-  loadContacts();
-  loadGroups();
+onMounted(async () => {
+  await loadGroups();
+  selectGroup(0);
 });
 </script>
 
