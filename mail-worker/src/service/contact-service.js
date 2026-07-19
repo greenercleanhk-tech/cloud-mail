@@ -97,6 +97,7 @@ const contactService = {
 
     /**
      * 批量添加聯絡人
+     * SQLite 有 999 SQL 變量上限，分批處理避免爆掉
      */
     async batchAdd(c, params, userId) {
         const { contacts, domainId } = params;
@@ -115,7 +116,11 @@ const contactService = {
             isDel: 0
         }));
 
-        await orm(c).insert(contact).values(values).run();
+        // 每批 100 條，100×7=700 個變量，遠低於 SQLite 上限 999
+        const BATCH = 100;
+        for (let i = 0; i < values.length; i += BATCH) {
+            await orm(c).insert(contact).values(values.slice(i, i + BATCH)).run();
+        }
         return { count: values.length };
     },
 
