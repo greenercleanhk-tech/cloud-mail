@@ -13,7 +13,7 @@ export const BATCH_SIZE = 10;
  * 原生 D1 分批插入
  * @param {Fetcher} c - Cloudflare Workers context
  * @param {string} tableName - 表名（DB 列名，snake_case）
- * @param {string[]} columns - DB 列名數組
+ * @param {string[]} columns - DB 列名數組（與 VALUES 順序對應）
  * @param {Object[]} values - 記錄數組（支援 camelCase 和 snake_case 兩種 key）
  * @param {Object} [extra] - 可選：固定覆蓋某些列的值（如 { domain_id, user_id }）
  */
@@ -28,12 +28,21 @@ export async function batchInsertNative(c, tableName, columns, values, extra = {
 	for (let i = 0; i < values.length; i += BATCH_SIZE) {
 		const batch = values.slice(i, i + BATCH_SIZE);
 		for (const row of batch) {
+			// 按 columns 順序湊 params：extra 有的用 extra，否則用 row（camelCase → snake_case fallback）
 			const params = columns.map(col => {
-				// 優先用 extra（固定值），再用 row（row 先試 camelCase 再試 snake_case）
-				if (col in extra) return extra[col];
+				if (col in extra) {
+					const v = extra[col];
+					console.log(`[batchInsertNative] col=${col} from extra: ${v}`);
+					return v;
+				}
 				const camelKey = col.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-				return row[camelKey] ?? row[col] ?? null;
+				const v = row[camelKey] ?? row[col] ?? null;
+				console.log(`[batchInsertNative] col=${col} from row (camelKey=${camelKey}): ${v}`);
+				return v;
 			});
+			console.log(`[batchInsertNative] sql=${sql}`);
+			console.log(`[batchInsertNative] params.length=${params.length}, expected=${columns.length}`);
+			console.log(`[batchInsertNative] params=${JSON.stringify(params)}`);
 			const result = await c.env.db.prepare(sql).bind(...params).run();
 			if (!result.success) {
 				throw new Error(`D1 insert failed: ${result.error} | row: ${JSON.stringify(row)}`);
@@ -48,14 +57,16 @@ export async function batchInsertNative(c, tableName, columns, values, extra = {
  * 簡化封裝：contacts 表（固定 domainId/userId）
  */
 export async function batchInsertContacts(c, contacts, domainId, userId) {
+	const now = new Date().toISOString();
 	await batchInsertNative(c, 'contacts', [
 		'name', 'email', 'group_id', 'domain_id', 'user_id',
 		'remark', 'is_unsubscribed', 'create_time', 'is_del'
 	], contacts, {
-		domain_id: domainId,
-		user_id: userId,
+		domain_id: domainId || 1,
+		user_id: userId || 1,
 		is_del: 0,
 		is_unsubscribed: 0,
-		create_time: new Date().toISOString()
+		create_time: now
 	});
+	console.log(`[batchInsertContacts] extra create_time=${now}`);
 }
