@@ -164,7 +164,7 @@
           ref="uploadRef"
           :auto-upload="false"
           :limit="1"
-          accept=".csv"
+          accept="text/csv,text/comma-separated-values,.csv"
           :on-change="handleFileChange"
           :on-remove="handleFileRemove"
           drag
@@ -390,7 +390,7 @@ function getGroupName(groupId) {
 function handleFileChange(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    const text = e.target.result;
+    const text = e.target.result.replace(/^\uFEFF/, ''); // 移除 UTF-8 BOM
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length === 0) return;
 
@@ -444,7 +444,7 @@ function handleFileChange(file) {
     importPreview.value = parsed.slice(0, 20);
     importInvalidCount.value = invalid;
   };
-  reader.readAsText(file.rawFile, 'UTF-8');
+  reader.readAsText(file.raw, 'UTF-8');
 }
 
 function handleFileRemove() {
