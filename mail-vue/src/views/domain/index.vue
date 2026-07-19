@@ -68,6 +68,12 @@
         </template>
       </el-table-column>
 
+      <el-table-column :label="$t('dailyLimit')" min-width="80" align="center">
+        <template #default="{ row }">
+          <span style="color:#909399;font-size:12px">{{ row.dailyLimit ?? 500 }}</span>
+        </template>
+      </el-table-column>
+
       <el-table-column :label="$t('actions')" min-width="150" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="handleEdit(row)">{{ $t('edit') }}</el-button>
