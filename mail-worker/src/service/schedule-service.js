@@ -118,23 +118,29 @@ const scheduleService = {
             throw new BizError(t('contactGroupNotFound'));
         }
 
-        // 自動統計人數（排除已退訂、已刪除）
-        const countResult = await orm(c)
-            .select({ total: count() })
+        // 獲取並亂序聯絡人（一次）
+        const contacts = await orm(c)
+            .select({ contactId: contact.contactId })
             .from(contact)
             .where(and(
                 inArray(contact.groupId, groupIdArr),
                 eq(contact.isDel, 0),
                 eq(contact.isUnsubscribed, 0)
             ))
-            .get();
-        const totalRecipients = countResult?.total ?? 0;
+            .all();
 
-        if (totalRecipients === 0) {
+        if (contacts.length === 0) {
             throw new BizError(t('noRecipient'));
         }
 
-        // 獲取域名下所有帳號
+        // Fisher-Yates 亂序
+        const shuffled = contacts.map(r => r.contactId);
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        // 獲取域名下所有帳號並亂序
         const accounts = await orm(c)
             .select()
             .from(account)
@@ -149,6 +155,13 @@ const scheduleService = {
             throw new BizError(t('noAccountInDomain'));
         }
 
+        // 帳號也亂序
+        const accountPool = accounts.map(a => a.accountId);
+        for (let i = accountPool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [accountPool[i], accountPool[j]] = [accountPool[j], accountPool[i]];
+        }
+
         // 創建 job
         const job = await orm(c)
             .insert(scheduleJob)
@@ -157,7 +170,8 @@ const scheduleService = {
                 domainId: Number(domainId),
                 templateId: Number(templateId),
                 contactGroupId: JSON.stringify(groupIdArr),
-                totalRecipients,
+                totalRecipients: shuffled.length,
+                shuffledContactIds: JSON.stringify(shuffled),
                 status: 'pending',
                 scheduledAt,
                 userId
@@ -165,25 +179,23 @@ const scheduleService = {
             .returning()
             .get();
 
-        // 每個帳號一個 task（用 cursor 而非固定範圍）
-        for (const acc of accounts) {
-            await orm(c)
-                .insert(scheduleTask)
-                .values({
-                    jobId: job.jobId,
-                    accountId: acc.accountId,
-                    recipientStart: 0,
-                    recipientEnd: 0,
-                    sentCount: 0,
-                    failedCount: 0,
-                    status: 'pending',
-                    scheduledAt,
-                    lastContactId: 0,
-                    sentToday: 0,
-                    lastSentDate: ''
-                })
-                .run();
-        }
+        // 只有一個 task：使用第一個帳號
+        await orm(c)
+            .insert(scheduleTask)
+            .values({
+                jobId: job.jobId,
+                accountPool: JSON.stringify(accountPool),
+                accountPoolIndex: 0,
+                accountId: accountPool[0],
+                cursor: 0,
+                sentToday: 0,
+                lastSentDate: '',
+                sentCount: 0,
+                failedCount: 0,
+                status: 'pending',
+                scheduledAt
+            })
+            .run();
 
         return job;
     },
@@ -224,7 +236,7 @@ const scheduleService = {
             .from(scheduleTask)
             .leftJoin(scheduleJob, eq(scheduleTask.jobId, scheduleJob.jobId))
             .where(and(
-                sql`(${scheduleTask.status} = 'pending' OR ${scheduleTask.status} = 'waiting_limit')`,
+                sql`(${scheduleTask.status} = 'pending' OR ${scheduleTask.status} = 'waiting_limit' OR ${scheduleTask.status} = 'waiting_mailbox')`,
                 lte(scheduleTask.scheduledAt, now),
                 eq(scheduleJob.status, 'running')
             ))
@@ -270,38 +282,49 @@ const scheduleService = {
     async runTask(c, task, job) {
         const today = dayjs().format('YYYY-MM-DD');
 
-        // 查域名（含 dailyLimit）
+        // 解析亂序後的聯絡人 ID（從 job 讀）
+        let shuffledContactIds = [];
+        try {
+            shuffledContactIds = JSON.parse(job.shuffledContactIds || '[]');
+        } catch { shuffledContactIds = []; }
+        if (shuffledContactIds.length === 0) return;
+
+        // 解析帳號池
+        let accountPool = [];
+        try {
+            accountPool = JSON.parse(task.accountPool || '[]');
+        } catch { accountPool = []; }
+        if (accountPool.length === 0) return;
+
+        // 查域名
         const domainRow = await orm(c)
             .select()
             .from(domain)
             .where(eq(domain.domainId, job.domainId))
             .get();
-
         if (!domainRow) return;
 
         const dailyLimit = domainRow.dailyLimit || 500;
+        const perMailboxDailyLimit = Math.floor(dailyLimit / accountPool.length);
 
-        // 重置域名日計數（新一天）
-        if (domainRow.lastSentDate !== today) {
+        // 新的一天：重置域名日計數 + task cursor
+        if (task.lastSentDate !== today) {
             await orm(c)
                 .update(domain)
                 .set({ sentToday: 0, lastSentDate: today })
                 .where(eq(domain.domainId, job.domainId))
                 .run();
-        }
-
-        // 重置帳號日計數（新一天）
-        let sentToday = task.sentToday || 0;
-        if (task.lastSentDate !== today) {
-            sentToday = 0;
             await orm(c)
                 .update(scheduleTask)
-                .set({ sentToday: 0, lastSentDate: today })
+                .set({ sentToday: 0, lastSentDate: today, accountPoolIndex: 0, accountId: accountPool[0] })
                 .where(eq(scheduleTask.taskId, task.taskId))
                 .run();
+            // task 變量也要更新
+            task.sentToday = 0;
+            task.accountPoolIndex = 0;
+            task.accountId = accountPool[0];
         }
 
-        // 更新任務為 running
         await orm(c)
             .update(scheduleTask)
             .set({ status: 'running' })
@@ -314,176 +337,157 @@ const scheduleService = {
             .from(emailTemplate)
             .where(eq(emailTemplate.templateId, job.templateId))
             .get();
+        if (!template) return;
 
-        // 解析通訊組
-        let groupIdArr = [];
-        try {
-            const raw = job.contactGroupId;
-            if (Array.isArray(raw)) groupIdArr = raw;
-            else if (typeof raw === 'string') groupIdArr = JSON.parse(raw);
-            else groupIdArr = [raw];
-        } catch { groupIdArr = [job.contactGroupId]; }
-
-        // 查發件帳號
-        const accountRow = await orm(c)
+        // 查所有帳號（用於取郵箱地址）
+        const accountRows = await orm(c)
             .select()
             .from(account)
-            .where(eq(account.accountId, task.accountId))
-            .get();
-
-        if (!accountRow || accountRow.status !== 'active' || !template) {
-            await orm(c)
-                .update(scheduleTask)
-                .set({ status: 'completed', finishedAt: dayjs().format('YYYY-MM-DD HH:mm:ss') })
-                .where(eq(scheduleTask.taskId, task.taskId))
-                .run();
-            return;
-        }
+            .where(and(
+                inArray(account.accountId, accountPool),
+                eq(account.isDel, 0),
+                eq(account.status, 'active')
+            ))
+            .all();
+        const accountMap = Object.fromEntries(accountRows.map(a => [a.accountId, a]));
 
         const { resendTokens } = await settingService.query(c);
-        const domainName = accountRow.email.split('@')[1];
-        const resendToken = (domainRow && domainRow.resendApiKey) ? domainRow.resendApiKey : resendTokens[domainName];
+        const resendToken = domainRow.resendApiKey || resendTokens[domainRow.domain] || '';
 
-        // === 每次最多取一批（50個），避免一次查太多 ===
-        const BATCH_SIZE = 50;
-        let lastContactId = task.lastContactId || 0;
+        // 各帳號今日已發（記憶體追蹤）
+        const mailboxDailySent = {};
+        accountPool.forEach(id => mailboxDailySent[id] = 0);
+
+        let cursor = task.cursor || 0;
+        let poolIdx = task.accountPoolIndex || 0;
         let sessionSent = 0;
         let sessionFailed = 0;
-        let hasMore = true;
+        let newSentToday = task.sentToday || 0;
+        let stopReason = null;
 
-        while (hasMore) {
-            // 1. 檢查域名日限額
+        while (cursor < shuffledContactIds.length) {
+            // 檢查域名日限額
             const domainNow = await orm(c)
                 .select({ sentToday: domain.sentToday, lastSentDate: domain.lastSentDate })
                 .from(domain)
                 .where(eq(domain.domainId, job.domainId))
                 .get();
 
-            // 新的一天重置
+            // 新的一天：重置
             if (domainNow.lastSentDate !== today) {
                 await orm(c)
                     .update(domain)
                     .set({ sentToday: 0, lastSentDate: today })
                     .where(eq(domain.domainId, job.domainId))
                     .run();
-            } else if (domainNow.sentToday >= dailyLimit) {
-                // 域名日限額已用完，標記 waiting_limit，明天繼續
-                await orm(c)
-                    .update(scheduleTask)
-                    .set({
-                        sentToday: sessionSent > 0 ? (task.sentToday + sessionSent) : task.sentToday,
-                        lastContactId,
-                        lastSentDate: today,
-                        status: 'waiting_limit'
-                    })
-                    .where(eq(scheduleTask.taskId, task.taskId))
-                    .run();
-                return;
+                newSentToday = 0;
+                Object.keys(mailboxDailySent).forEach(k => mailboxDailySent[k] = 0);
             }
 
-            // 2. 用 cursor 查下一批聯絡人（id > lastContactId）
-            const contacts = await orm(c)
-                .select()
-                .from(contact)
-                .where(and(
-                    inArray(contact.groupId, groupIdArr),
-                    eq(contact.isDel, 0),
-                    eq(contact.isUnsubscribed, 0),
-                    lastContactId > 0 ? sql`${contact.contactId} > ${lastContactId}` : sql`1=1`
-                ))
-                .orderBy(contact.contactId)
-                .limit(BATCH_SIZE)
-                .all();
-
-            if (contacts.length === 0) {
-                hasMore = false;
+            if (newSentToday >= dailyLimit) {
+                stopReason = 'domain_limit';
                 break;
             }
 
-            for (const con of contacts) {
-                // 每發一封，更新域名和任務的 sentToday
-                const domainAfter = await orm(c)
-                    .select({ sentToday: domain.sentToday })
-                    .from(domain)
-                    .where(eq(domain.domainId, job.domainId))
-                    .get();
-
-                if (domainAfter.sentToday >= dailyLimit) {
-                    hasMore = false;
-                    // 記錄 cursor，但狀態等下一批
-                    await orm(c)
-                        .update(scheduleTask)
-                        .set({
-                            sentToday: (task.sentToday || 0) + sessionSent,
-                            lastContactId,
-                            lastSentDate: today,
-                            status: 'waiting_limit'
-                        })
-                        .where(eq(scheduleTask.taskId, task.taskId))
-                        .run();
-                    // 更新域名 sentToday
-                    await orm(c)
-                        .update(domain)
-                        .set({ sentToday: domainAfter.sentToday + sessionSent })
-                        .where(eq(domain.domainId, job.domainId))
-                        .run();
-                    return;
+            // 找下一個還有配額的帳號
+            let tries = 0;
+            while (tries < accountPool.length) {
+                const accId = accountPool[poolIdx % accountPool.length];
+                if (mailboxDailySent[accId] < perMailboxDailyLimit) {
+                    break;
                 }
-
-                try {
-                    const token = base64Encode(con.email);
-                    const unsubLink = `https://cloud-mail.lauskiing520.workers.dev/contact/unsubscribe?token=${token}`;
-                    const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;line-height:1.8;">
-                        如閣下不想再收到我們的電郵，請<a href="${unsubLink}" style="color:#999;text-decoration:underline;">按這裡</a>一鍵回覆退訂。<br/>
-                        If you do not wish to receive further email messages from us,<br/>
-                        please <a href="${unsubLink}" style="color:#999;text-decoration:underline;">click here</a> to reply and unsubscribe.
-                    </div>`;
-
-                    await emailService.sendByResend(resendToken, {
-                        name: template.name,
-                        accountEmail: accountRow.email,
-                        receiveEmail: [con.email],
-                        subject: template.subject,
-                        text: '',
-                        html: template.content + unsubHtml,
-                        attachments: []
-                    });
-
-                    sessionSent++;
-                    lastContactId = con.contactId;
-
-                    // 即時更新域名 sentToday + 任務 cursor
-                    await orm(c)
-                        .update(domain)
-                        .set({ sentToday: domainAfter.sentToday + 1 })
-                        .where(eq(domain.domainId, job.domainId))
-                        .run();
-
-                    await new Promise(r => setTimeout(r, this.SEND_INTERVAL_MS));
-                } catch (e) {
-                    sessionFailed++;
-                    console.error('[schedule] send failed:', con.email, e.message);
-                }
+                poolIdx++;
+                tries++;
             }
 
-            // 如果不到一批，說明發完了
-            if (contacts.length < BATCH_SIZE) hasMore = false;
+            if (tries >= accountPool.length) {
+                // 所有帳號今天的配額都用了
+                stopReason = 'mailbox_limit';
+                break;
+            }
+
+            const accId = accountPool[poolIdx % accountPool.length];
+            const accountRow = accountMap[accId];
+            if (!accountRow || accountRow.status !== 'active') {
+                poolIdx++;
+                continue;
+            }
+
+            // 取出聯絡人
+            const contactRow = await orm(c)
+                .select()
+                .from(contact)
+                .where(and(
+                    eq(contact.contactId, shuffledContactIds[cursor]),
+                    eq(contact.isDel, 0)
+                ))
+                .get();
+
+            if (!contactRow || contactRow.isUnsubscribed === 1) {
+                cursor++;
+                continue;
+            }
+
+            try {
+                const token = base64Encode(contactRow.email);
+                const unsubLink = `https://cloud-mail.lauskiing520.workers.dev/contact/unsubscribe?token=${token}`;
+                const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;line-height:1.8;">
+                    如閣下不想再收到我們的電郵，請<a href="${unsubLink}" style="color:#999;text-decoration:underline;">按這裡</a>一鍵回覆退訂。<br/>
+                    If you do not wish to receive further email messages from us,<br/>
+                    please <a href="${unsubLink}" style="color:#999;text-decoration:underline;">click here</a> to reply and unsubscribe.
+                </div>`;
+
+                await emailService.sendByResend(resendToken, {
+                    name: template.name,
+                    accountEmail: accountRow.email,
+                    receiveEmail: [contactRow.email],
+                    subject: template.subject,
+                    text: '',
+                    html: template.content + unsubHtml,
+                    attachments: []
+                });
+
+                sessionSent++;
+                newSentToday++;
+                mailboxDailySent[accId]++;
+                cursor++;
+                poolIdx++;
+
+                // 即時更新域名日計數
+                await orm(c)
+                    .update(domain)
+                    .set({ sentToday: newSentToday })
+                    .where(eq(domain.domainId, job.domainId))
+                    .run();
+
+                await new Promise(r => setTimeout(r, this.SEND_INTERVAL_MS));
+            } catch (e) {
+                sessionFailed++;
+                cursor++;
+                poolIdx++;
+                console.error('[schedule] send failed:', contactRow.email, e.message);
+            }
         }
 
-        // 任務完成
-        const totalSent = (task.sentCount || 0) + sessionSent;
-        const totalFailed = (task.failedCount || 0) + sessionFailed;
+        // 判斷任務狀態
+        let finalStatus = 'completed';
+        if (cursor < shuffledContactIds.length) {
+            finalStatus = stopReason === 'domain_limit' ? 'waiting_limit' : 'waiting_mailbox';
+        }
 
+        // 儲存進度
         await orm(c)
             .update(scheduleTask)
             .set({
-                sentCount: totalSent,
-                failedCount: totalFailed,
-                sentToday: (task.sentToday || 0) + sessionSent,
-                lastContactId,
+                cursor,
+                accountPoolIndex: poolIdx % accountPool.length,
+                accountId: accountPool[poolIdx % accountPool.length],
+                sentToday: newSentToday,
                 lastSentDate: today,
-                status: 'completed',
-                finishedAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
+                sentCount: (task.sentCount || 0) + sessionSent,
+                failedCount: (task.failedCount || 0) + sessionFailed,
+                status: finalStatus,
+                finishedAt: finalStatus === 'completed' ? dayjs().format('YYYY-MM-DD HH:mm:ss') : null
             })
             .where(eq(scheduleTask.taskId, task.taskId))
             .run();

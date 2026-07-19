@@ -13,7 +13,9 @@ export const scheduleJob = sqliteTable('schedule_job', {
     totalRecipients: integer('total_recipients').notNull(), // 總收件人數
     sentCount: integer('sent_count').default(0).notNull(), // 已發數
     failedCount: integer('failed_count').default(0).notNull(), // 失敗數
-    status: text('status').default('pending').notNull(), // pending / running / completed / cancelled
+    status: text('status').default('pending').notNull(), // pending / running / completed / cancelled / waiting_limit
+    // 亂序後的聯絡人 ID 列表（JSON 數組），只計算一次，後面直接用
+    shuffledContactIds: text('shuffled_contact_ids').default('[]').notNull(),
     scheduledAt: text('scheduled_at').notNull(),   // 計劃開始時間（ISO 8601）
     finishedAt: text('finished_at'),               // 完成時間
     userId: integer('user_id').notNull(),          // 建立者
