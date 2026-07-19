@@ -4,7 +4,7 @@
  * 7列 → 142，6列 → 166，5列 → 199，4列 → 249，3列 → 333
  * 統一用 100 條/批，安全且兼顧效率
  */
-export const BATCH_SIZE = 100;
+export const BATCH_SIZE = 50;
 
 /**
  * 將大數組分批插入
