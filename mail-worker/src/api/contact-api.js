@@ -50,7 +50,17 @@ app.put('/contact/update', async (c) => {
 });
 
 /**
- * 刪除聯絡人
+ * 批量刪除聯絡人
+ * POST /contact/batchDelete
+ */
+app.post('/contact/batchDelete', async (c) => {
+    const userId = userContext.getUserId(c);
+    const res = await contactService.batchDelete(c, await c.req.json(), userId);
+    return c.json(result.ok(res));
+});
+
+/**
+ * 刪除聯絡人（單條）
  * DELETE /contact/delete
  */
 app.delete('/contact/delete', async (c) => {

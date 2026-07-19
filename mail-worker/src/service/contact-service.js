@@ -107,7 +107,7 @@ const contactService = {
             throw new BizError(t('contactsRequired'));
         }
 
-        console.log(`[batchAdd] 收到 ${contacts.length} 條聯絡人，將分 ${Math.ceil(contacts.length / 100)} 批插入`);
+        console.log(`[batchAdd] 收到 ${contacts.length} 條聯絡人`);
 
         const values = contacts.map(item => ({
             name: item.name || item.email.split('@')[0],
@@ -164,10 +164,33 @@ const contactService = {
             .update(contact)
             .set({ isDel: 1 })
             .where(and(
-                eq(contact.contactId, contactId),
+                eq(contact.contactId, Number(contactId)),
                 eq(contact.userId, userId)
             ))
             .run();
+    },
+
+    /**
+     * 批量刪除聯絡人（軟刪除）
+     */
+    async batchDelete(c, params, userId) {
+        const { contactIds } = params;
+
+        if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+            throw new BizError(t('contactsRequired'));
+        }
+
+        const ids = contactIds.map(id => Number(id));
+        await orm(c)
+            .update(contact)
+            .set({ isDel: 1 })
+            .where(and(
+                sql`${contact.contactId} IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`,
+                eq(contact.userId, userId)
+            ))
+            .run();
+
+        return { count: ids.length };
     },
 
     // ==================== 群組 ====================
@@ -266,29 +289,31 @@ const contactService = {
     },
 
     /**
-     * 獲取群組內的成員數量
+     * 獲取群組列表（含成員數量）
      */
     async groupMemberCount(c, params = {}) {
         const { domainId, userId } = params;
+        const domainIdNum = Number(domainId) || 1;
 
-        const groups = await this.groupList(c, { domainId, userId });
+        const groups = await this.groupList(c, { domainId: domainIdNum, userId });
+
         const contacts = await orm(c)
             .select({
                 groupId: contact.groupId,
-                count: count()
+                cnt: count()
             })
             .from(contact)
             .where(and(
                 eq(contact.userId, userId),
                 eq(contact.isDel, 0),
-                domainId ? eq(contact.domainId, domainId) : sql`1=1`
+                eq(contact.domainId, domainIdNum)
             ))
             .groupBy(contact.groupId)
             .all();
 
         return groups.map(g => ({
             ...g,
-            memberCount: contacts.find(c => c.groupId === g.groupId)?.count || 0
+            memberCount: contacts.find(x => Number(x.groupId) === g.groupId)?.cnt || 0
         }));
     },
 
