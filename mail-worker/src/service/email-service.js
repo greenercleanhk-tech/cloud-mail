@@ -29,12 +29,13 @@ const emailService = {
 
 	async list(c, params, userId) {
 
-		let { emailId, type, accountId, size, timeSort, allReceive } = params;
+		let { emailId, type, accountId, domainId, size, timeSort, allReceive } = params;
 
 		size = Number(size);
 		emailId = Number(emailId);
 		timeSort = Number(timeSort);
 		accountId = Number(accountId);
+		domainId = Number(domainId);
 		allReceive = Number(allReceive);
 
 		if (size > 50) {
@@ -56,6 +57,14 @@ const emailService = {
 			allReceive = accountRow.allReceive;
 		}
 
+		// domainId 模式下：查該域名下所有帳號的郵件
+		let accountIdFilter = null;
+		if (domainId && !isNaN(domainId)) {
+			const domainAccounts = await orm(c).select({ accountId: account.accountId }).from(account)
+				.where(and(eq(account.domainId, domainId), eq(account.isDel, 0), eq(account.status, 'active'))).all();
+			accountIdFilter = domainAccounts.map(a => a.accountId);
+		}
+
 		const query = orm(c)
 			.select({
 				...email,
@@ -74,7 +83,7 @@ const emailService = {
 			)
 			.where(
 				and(
-					allReceive ? eq(1,1) : eq(email.accountId, accountId),
+					accountIdFilter ? inArray(email.accountId, accountIdFilter) : (allReceive ? eq(1,1) : eq(email.accountId, accountId)),
 					eq(email.userId, userId),
 					timeSort ? gt(email.emailId, emailId) : lt(email.emailId, emailId),
 					eq(email.type, type),
@@ -98,7 +107,7 @@ const emailService = {
 			)
 			.where(
 				and(
-					allReceive ? eq(1,1) : eq(email.accountId, accountId),
+					accountIdFilter ? inArray(email.accountId, accountIdFilter) : (allReceive ? eq(1,1) : eq(email.accountId, accountId)),
 					eq(email.userId, userId),
 					eq(email.type, type),
 					eq(email.isDel, isDel.NORMAL),
@@ -108,7 +117,7 @@ const emailService = {
 
 		const latestEmailQuery = orm(c).select().from(email).where(
 			and(
-				allReceive ? eq(1,1) : eq(email.accountId, accountId),
+				accountIdFilter ? inArray(email.accountId, accountIdFilter) : (allReceive ? eq(1,1) : eq(email.accountId, accountId)),
 				eq(email.userId, userId),
 				eq(email.type, type),
 				eq(email.isDel, isDel.NORMAL)
@@ -718,12 +727,20 @@ const emailService = {
 	},
 
 	async latest(c, params, userId) {
-		let { emailId, accountId, allReceive } = params;
+		let { emailId, accountId, domainId, allReceive } = params;
+		domainId = Number(domainId);
 		allReceive = Number(allReceive);
 
 		if (isNaN(allReceive)) {
 			let accountRow = await accountService.selectById(c, accountId);
 			allReceive = accountRow.allReceive;
+		}
+
+		let accountIdFilter = null;
+		if (domainId && !isNaN(domainId)) {
+			const domainAccounts = await orm(c).select({ accountId: account.accountId }).from(account)
+				.where(and(eq(account.domainId, domainId), eq(account.isDel, 0), eq(account.status, 'active'))).all();
+			accountIdFilter = domainAccounts.map(a => a.accountId);
 		}
 
 		let list = await orm(c).select({...email}).from(email)
@@ -737,7 +754,7 @@ const emailService = {
 					eq(email.userId, userId),
 					eq(email.isDel, isDel.NORMAL),
 					eq(account.isDel, isDel.NORMAL),
-					allReceive ? eq(1,1) : eq(email.accountId, accountId),
+					accountIdFilter ? inArray(email.accountId, accountIdFilter) : (allReceive ? eq(1,1) : eq(email.accountId, accountId)),
 					eq(email.type, emailConst.type.RECEIVE)
 				))
 			.orderBy(desc(email.emailId))
