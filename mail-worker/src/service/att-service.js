@@ -1,7 +1,7 @@
 import orm from '../entity/orm';
 import { att } from '../entity/att';
 import { and, eq, isNull, inArray, desc } from 'drizzle-orm';
-import { batchInsert } from '../utils/batch-utils';
+import { batchInsertNative } from '../utils/batch-utils';
 import r2Service from './r2-service';
 import constant from '../const/constant';
 import fileUtils from '../utils/file-utils';
@@ -32,10 +32,11 @@ const attService = {
 
 		}
 
-		await batchInsert(
-			batch => orm(c).insert(att).values(batch).run(),
-			attachments
-		);
+		await batchInsertNative(c, 'attachments', [
+			'user_id', 'email_id', 'domain_id', 'account_id',
+			'key', 'filename', 'mime_type', 'size', 'status', 'type',
+			'disposition', 'related', 'content_id', 'encoding', 'is_del', 'create_time'
+		], attachments, { is_del: 0 });
 	},
 
 	async list(c, params, userId) {
@@ -166,10 +167,11 @@ const attService = {
 			attDataList.push(attData);
 		}
 
-		await batchInsert(
-			batch => orm(c).insert(att).values(batch).run(),
-			attDataList
-		);
+		await batchInsertNative(c, 'attachments', [
+			'user_id', 'email_id', 'domain_id', 'account_id',
+			'key', 'filename', 'mime_type', 'size', 'status', 'type',
+			'disposition', 'related', 'content_id', 'encoding', 'is_del', 'create_time'
+		], attDataList, { status: '0', is_del: 0 });
 
 		for (let att of attList) {
 			await r2Service.putObj(c, att.key, att.buff, {
@@ -199,10 +201,11 @@ const attService = {
 			delete attData.buff;
 		}
 
-		await batchInsert(
-			batch => orm(c).insert(att).values(batch).run(),
-			attDataList
-		);
+		await batchInsertNative(c, 'attachments', [
+			'user_id', 'email_id', 'domain_id', 'account_id',
+			'key', 'filename', 'mime_type', 'size', 'status', 'type',
+			'disposition', 'related', 'content_id', 'encoding', 'is_del', 'create_time'
+		], attDataList, { status: '0', is_del: 0 });
 
 	},
 
