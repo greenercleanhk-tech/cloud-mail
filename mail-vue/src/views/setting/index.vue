@@ -53,6 +53,7 @@
     </div>
     <el-dialog v-model="pwdShow" :title="$t('changePassword')" width="340">
       <div class="update-pwd">
+        <el-input type="password" :placeholder="$t('oldPassword')" v-model="form.oldPassword" autocomplete="off"/>
         <el-input type="password" :placeholder="$t('newPassword')" v-model="form.password" autocomplete="off"/>
         <el-input type="password" :placeholder="$t('confirmPassword')" v-model="form.newPwd" autocomplete="off"/>
         <el-button type="primary" :loading="setPwdLoading" @click="submitPwd">{{$t('save')}}</el-button>
@@ -135,6 +136,7 @@ function changeLang(lang) {
 
 const pwdShow = ref(false)
 const form = reactive({
+  oldPassword: '',
   password: '',
   newPwd: '',
 })
@@ -159,6 +161,15 @@ const deleteConfirm = () => {
 
 
 function submitPwd() {
+
+  if (!form.oldPassword) {
+    ElMessage({
+      message: t('emptyOldPwdMsg'),
+      type: 'error',
+      plain: true,
+    })
+    return
+  }
 
   if (!form.password) {
     ElMessage({
@@ -188,16 +199,20 @@ function submitPwd() {
   }
 
   setPwdLoading.value = true
-  resetPassword(form.password).then(() => {
+  resetPassword(form.oldPassword, form.password).then(() => {
     ElMessage({
-      message: t('saveSuccessMsg'),
+      message: t('pwdChangeSuccessMsg'),
       type: 'success',
       plain: true,
     })
     pwdShow.value = false
     setPwdLoading.value = false
+    form.oldPassword = ''
     form.password = ''
     form.newPwd = ''
+    // 密码修改后 token 已失效，跳转到登录页
+    localStorage.removeItem('token')
+    router.replace('/login')
   }).catch(() => {
     setPwdLoading.value = false
   })

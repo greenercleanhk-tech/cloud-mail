@@ -57,13 +57,28 @@ const userService = {
 
 	async resetPassword(c, params, userId) {
 
-		const { password } = params;
+		const { oldPassword, newPassword } = params;
 
-		if (password.length < 6) {
+		// 验证旧密码
+		if (!oldPassword) {
+			throw new BizError(t('oldPwdRequired'));
+		}
+		const userRow = await userService.selectById(c, userId);
+		const oldVerify = await cryptoUtils.verifyPassword(oldPassword, userRow.salt, userRow.password);
+		if (!oldVerify) {
+			throw new BizError(t('oldPwdError'));
+		}
+
+		// 验证新密码
+		if (!newPassword || newPassword.length < 6) {
 			throw new BizError(t('pwdMinLength'));
 		}
-		const { salt, hash } = await cryptoUtils.hashPassword(password);
+
+		const { salt, hash } = await cryptoUtils.hashPassword(newPassword);
 		await orm(c).update(user).set({ password: hash, salt: salt }).where(eq(user.userId, userId)).run();
+
+		// 使所有旧 token 失效，强制重新登录
+		await c.env.kv.delete(KvConst.AUTH_INFO + userId);
 	},
 
 	selectByEmail(c, email) {

@@ -31,6 +31,8 @@ const zh = {
 	minEmailPrefix: '邮箱名至少{{msg}}位',
 	banEmailPrefix: '邮箱名包含非法字符',
 	pwdMinLength: '密码至少六位',
+	oldPwdRequired: '请输入旧密码',
+	oldPwdError: '旧密码错误',
 	notEmailDomain: '非法邮箱域名',
 	emptyRegKey: '注册码不能为空',
 	notExistRegKey: '注册码不存在',

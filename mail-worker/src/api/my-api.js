@@ -9,7 +9,12 @@ app.get('/my/loginUserInfo', async (c) => {
 });
 
 app.put('/my/resetPassword', async (c) => {
-	await userService.resetPassword(c, await c.req.json(), userContext.getUserId(c));
+	const params = await c.req.json();
+	// 兼容旧调用（管理员改密码不带 oldPassword）
+	if (!params.oldPassword) {
+		params.oldPassword = null;
+	}
+	await userService.resetPassword(c, params, userContext.getUserId(c));
 	return c.json(result.ok());
 });
 
