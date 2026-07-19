@@ -1,21 +1,21 @@
 /**
  * SQLite/D1 批量插入工具
- * SQLite 變量上限 999，計算公式：limit = floor(999 / columnCount)
- * 7列 → 142，6列 → 166，5列 → 199，4列 → 249，3列 → 333
- * 統一用 100 條/批，安全且兼顧效率
+ * D1 有嚴格 SQL 變量上限，標準 batch 也會爆
+ * 改用逐條插入，犧牲速度換取穩定性
  */
-export const BATCH_SIZE = 50;
+export const BATCH_SIZE = 1;
 
 /**
- * 將大數組分批插入
- * @param {Function} ormFn - 調用 orm(c).insert(...).values(...).run() 的函數
+ * 將大數組逐條插入（SQLite/D1 兼容）
+ * @param {Function} ormFn - 單行插入函數，簽名：values => orm(c).insert(tbl).values(values).run()
  * @param {Array} values - 要插入的數組
  */
 export async function batchInsert(ormFn, values) {
 	if (!values || values.length === 0) return;
-	for (let i = 0; i < values.length; i += BATCH_SIZE) {
-		const batch = values.slice(i, i + BATCH_SIZE);
-		console.log(`[batchInsert] 第${Math.floor(i/BATCH_SIZE)+1}批，數量=${batch.length}，變量數=${batch.length * 7}`);
-		await ormFn(batch);
+	for (let i = 0; i < values.length; i++) {
+		await ormFn(values[i]);
+		if ((i + 1) % 100 === 0) {
+			console.log(`[batchInsert] 已插入 ${i + 1}/${values.length}`);
+		}
 	}
 }
