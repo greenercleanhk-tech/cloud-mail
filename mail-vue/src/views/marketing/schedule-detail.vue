@@ -79,14 +79,14 @@
 
         <el-table :data="tasks" stripe v-loading="loading2">
           <!-- 狀態 -->
-          <el-table-column :label="$t('status')" width="110" align="center">
+          <el-table-column :label="$t('status')" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
 
           <!-- 當前郵箱 -->
-          <el-table-column :label="$t('currentMailbox')" min-width="200">
+          <el-table-column :label="$t('currentMailbox')" min-width="160" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.currentMailboxEmail }}</span>
               <el-tag v-if="row.currentMailboxStatus === 'active'" type="success" size="small" style="margin-left:6px">Active</el-tag>
@@ -95,7 +95,7 @@
           </el-table-column>
 
           <!-- 進度 -->
-          <el-table-column :label="$t('progress')" min-width="180">
+          <el-table-column :label="$t('progress')" min-width="150">
             <template #default="{ row }">
               <el-progress
                 :percentage="row.progressPct"
@@ -107,7 +107,7 @@
           </el-table-column>
 
           <!-- 今日已發 -->
-          <el-table-column :label="$t('sentToday')" width="100" align="center">
+          <el-table-column :label="$t('sentToday')" width="120" align="center">
             <template #default="{ row }">
               <span style="font-size:14px">{{ row.sentToday ?? 0 }}</span>
               <span style="font-size:11px;color:#999"> / {{ row.perMailboxLimit }}</span>
@@ -115,21 +115,21 @@
           </el-table-column>
 
           <!-- cursor -->
-          <el-table-column :label="'Cursor'" width="90" align="center">
+          <el-table-column :label="'Cursor'" width="80" align="center">
             <template #default="{ row }">
               <span style="font-family:monospace;font-size:13px">{{ row.cursor }}</span>
             </template>
           </el-table-column>
 
           <!-- Pool Index -->
-          <el-table-column :label="$t('poolIndex')" width="90" align="center">
+          <el-table-column :label="$t('poolIndex')" width="80" align="center">
             <template #default="{ row }">
               <span style="font-family:monospace;font-size:13px">{{ row.accountPoolIndex }}</span>
             </template>
           </el-table-column>
 
           <!-- 最後發送日 -->
-          <el-table-column :label="$t('lastSentDate')" width="130">
+          <el-table-column :label="$t('lastSentDate')" width="120">
             <template #default="{ row }">
               <span style="font-size:13px;color:#666">{{ row.lastSentDate || '-' }}</span>
             </template>

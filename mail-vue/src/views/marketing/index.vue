@@ -76,13 +76,13 @@
         <div class="schedule-list">
           <div class="list-title">{{ $t('scheduleList') }}</div>
           <el-table :data="scheduleList" stripe v-loading="scheduleLoading" style="width: 100%">
-            <el-table-column prop="name" :label="$t('taskName')" min-width="140" />
-            <el-table-column :label="$t('domain')" width="160">
+            <el-table-column prop="name" :label="$t('taskName')" min-width="150" show-overflow-tooltip />
+            <el-table-column :label="$t('domain')" width="140">
               <template #default="{ row }">
                 {{ getDomainName(row.domainId) }}
               </template>
             </el-table-column>
-            <el-table-column :label="$t('progress')" width="200">
+            <el-table-column :label="$t('progress')" min-width="160">
               <template #default="{ row }">
                 <el-progress
                   :percentage="getProgress(row)"
@@ -92,17 +92,17 @@
                 <span class="progress-text">{{ row.sentCount }} / {{ row.totalRecipients }}</span>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('sendTime')" width="160">
+            <el-table-column :label="$t('sendTime')" width="150">
               <template #default="{ row }">
                 {{ row.scheduledAt ? row.scheduledAt.slice(0, 16) : '-' }}
               </template>
             </el-table-column>
-            <el-table-column :label="$t('status')" width="100">
+            <el-table-column :label="$t('status')" width="90">
               <template #default="{ row }">
                 <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('actions')" width="200" fixed="right">
+            <el-table-column :label="$t('actions')" width="120" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="$router.push('/schedule/' + row.jobId)">
                   {{ $t('viewDetail') }}
