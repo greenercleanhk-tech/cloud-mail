@@ -471,6 +471,8 @@ const zh = {
     status: '状态',
     customDomain: '自定义域名',
     customDomainPlaceholder: '如 mail.parkin.hk，Cloudflare Workers 自定义域名',
+    dailyLimit: '每日发件上限',
+    dailyLimitUnit: '封/天',
 
     // ---------- 退订页 ----------
     unsubscribeProcessing: '正在处理退订…',

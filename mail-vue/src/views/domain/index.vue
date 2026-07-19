@@ -76,6 +76,10 @@
         <el-form-item :label="$t('customDomain')">
           <el-input v-model="formData.customDomain" :placeholder="$t('customDomainPlaceholder')" />
         </el-form-item>
+        <el-form-item :label="$t('dailyLimit')">
+          <el-input-number v-model="formData.dailyLimit" :min="1" :max="10000" />
+          <span style="margin-left:8px;color:#999;font-size:12px">{{ $t('dailyLimitUnit') }}</span>
+        </el-form-item>
         <el-form-item :label="$t('status')">
           <el-switch v-model="formData.isActive" :active-value="1" :inactive-value="0" />
         </el-form-item>
@@ -239,6 +243,7 @@ const formData = reactive({
   displayName: '',
   resendApiKey: '',
   customDomain: '',
+  dailyLimit: 500,
   isActive: 1
 });
 
@@ -283,6 +288,7 @@ function handleEdit(row) {
     displayName: row.displayName,
     resendApiKey: row.resendApiKey || '',
     customDomain: row.customDomain || '',
+    dailyLimit: row.dailyLimit || 500,
     isActive: row.isActive
   });
   showAddDialog.value = true;

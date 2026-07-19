@@ -496,6 +496,8 @@ const en = {
     status: 'Status',
     customDomain: 'Custom Domain',
     customDomainPlaceholder: 'e.g. mail.parkin.hk, Cloudflare Workers custom domain',
+    dailyLimit: 'Daily Send Limit',
+    dailyLimitUnit: 'emails/day',
 
     // ---------- Unsubscribe Page ----------
     unsubscribeProcessing: 'Processing unsubscribe…',
