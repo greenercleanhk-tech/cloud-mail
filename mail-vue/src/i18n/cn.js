@@ -467,7 +467,8 @@ const zh = {
     delivered: '送达',
     bounced: '退信',
     unsubscribed: '退订',
-    senderName: '发件人'
+    senderName: '发件人',
+    status: '状态'
 }
 
 export default zh

@@ -86,7 +86,7 @@
     </el-dialog>
 
     <!-- 域名郵箱統計對話框 -->
-    <el-dialog v-model="showMailboxesDialog" :title="`${statsDomain?.domain ?? ''} - ${$t('mailboxStats')}`" width="720px">
+    <el-dialog v-model="showMailboxesDialog" :title="`${statsDomain?.domain ?? ''} - ${$t('mailboxStats')}`" width="900px">
       <div v-if="!mailboxesStats" style="text-align:center;padding:40px;color:#999">載入中...</div>
       <div v-else>
         <!-- 域名總覽 -->
@@ -115,8 +115,21 @@
 
         <!-- 郵箱列表 -->
         <el-table :data="mailboxesStats.accounts" stripe size="small" style="margin-top:16px">
-          <el-table-column prop="email" :label="$t('email')" min-width="180" />
+          <el-table-column prop="email" :label="$t('email')" min-width="200" />
           <el-table-column prop="name" :label="$t('senderName')" width="120" />
+          <el-table-column :label="$t('status')" width="100" align="center">
+            <template #default="{ row }">
+              <el-switch
+                :model-value="row.status === 'active'"
+                @change="handleStatusChange(row, $event)"
+                :loading="statusLoading === row.accountId"
+                size="small"
+                active-text="啟用"
+                inactive-text="停用"
+                inline-prompt
+              />
+            </template>
+          </el-table-column>
           <el-table-column :label="$t('health')" width="100">
             <template #default="{ row }">
               <el-tag :type="getHealthTagType(row.health)" size="small">
@@ -180,7 +193,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
 import { domainList as getDomainList, domainAdd, domainUpdate, domainDelete, domainStats } from '@/request/domain.js';
-import { accountAdd } from '@/request/account.js';
+import { accountAdd, setAccountStatus } from '@/request/account.js';
 import { useSettingStore } from '@/store/setting.js';
 import { useDomainStore } from '@/store/domain.js';
 
@@ -341,6 +354,27 @@ async function handleMailboxes(row) {
     mailboxesStats.value = res || null;
   } catch (e) {
     ElMessage.error('載入郵箱統計失敗：' + (e.message || String(e)));
+  }
+}
+
+// 切換郵箱啟用/停用狀態
+const statusLoading = ref(null);
+async function handleStatusChange(row, enabled) {
+  const newStatus = enabled ? 'active' : 'disabled';
+  statusLoading.value = row.accountId;
+  try {
+    await setAccountStatus(row.accountId, newStatus);
+    row.status = newStatus;
+    // 同步更新 mailboxesStats 內的 accounts 狀態
+    if (mailboxesStats.value?.accounts) {
+      const acc = mailboxesStats.value.accounts.find(a => a.accountId === row.accountId);
+      if (acc) acc.status = newStatus;
+    }
+    ElMessage.success(enabled ? '已啟用' : '已停用');
+  } catch (e) {
+    ElMessage.error('狀態更新失敗：' + (e.message || String(e)));
+  } finally {
+    statusLoading.value = null;
   }
 }
 

@@ -492,7 +492,8 @@ const en = {
     delivered: 'Delivered',
     bounced: 'Bounced',
     unsubscribed: 'Unsubscribed',
-    senderName: 'Sender'
+    senderName: 'Sender',
+    status: 'Status'
 }
 
 export default en
