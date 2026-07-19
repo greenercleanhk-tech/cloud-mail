@@ -41,6 +41,12 @@ jobs:
         working-directory: ./mail-worker
         run: npx esbuild src/index.js --bundle --outdir=dist --format=esm --external:node:events --external:node:async_hooks
 
+      # ⚠️ CRITICAL: Copy Vue build output to mail-worker/dist/ for Cloudflare Assets
+      - name: Copy Vue build to Worker assets directory
+        run: |
+          cp -r mail-vue/dist/* mail-worker/dist/
+          echo "Copied Vue build to mail-worker/dist/"
+
       - name: Deploy to Cloudflare
         working-directory: ./mail-worker
         env:
