@@ -1,4 +1,4 @@
-name: Deploy Worker
+name: Deploy Worker + Frontend
 
 on:
   push:
@@ -7,10 +7,12 @@ on:
     paths:
       - '.github/workflows/deploy-worker.yml'
       - 'mail-worker/**'
+      - 'mail-vue/**'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -19,7 +21,19 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install dependencies
+      # Build Vue frontend → outputs to mail-worker/dist/
+      - name: Install Vue dependencies
+        working-directory: ./mail-vue
+        run: npm install
+
+      - name: Build Vue
+        working-directory: ./mail-vue
+        run: npm run build
+        env:
+          NODE_ENV: release
+
+      # Build Worker bundle
+      - name: Install Worker dependencies
         working-directory: ./mail-worker
         run: npm install
 
