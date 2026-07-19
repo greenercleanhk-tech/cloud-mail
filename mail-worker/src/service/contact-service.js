@@ -295,18 +295,17 @@ const contactService = {
     // ==================== 群組 ====================
 
     /**
-     * 獲取群組列表
+     * 獲取群組列表（不按域名過濾）
      */
     async groupList(c, params = {}) {
-        const { domainId, userId } = params;
+        const { userId } = params;
 
         const list = await orm(c)
             .select()
             .from(contactGroup)
             .where(and(
                 eq(contactGroup.userId, userId),
-                eq(contactGroup.isDel, 0),
-                domainId ? eq(contactGroup.domainId, domainId) : sql`1=1`
+                eq(contactGroup.isDel, 0)
             ))
             .orderBy(contactGroup.sort, contactGroup.createTime)
             .all();
@@ -388,13 +387,12 @@ const contactService = {
     },
 
     /**
-     * 獲取群組列表（含成員數量）
+     * 獲取群組列表（含成員數量，不按域名過濾）
      */
     async groupMemberCount(c, params = {}) {
-        const { domainId, userId } = params;
-        const domainIdNum = Number(domainId) || 1;
+        const { userId } = params;
 
-        const groups = await this.groupList(c, { domainId: domainIdNum, userId });
+        const groups = await this.groupList(c, { userId });
 
         const contacts = await orm(c)
             .select({
@@ -404,8 +402,7 @@ const contactService = {
             .from(contact)
             .where(and(
                 eq(contact.userId, userId),
-                eq(contact.isDel, 0),
-                eq(contact.domainId, domainIdNum)
+                eq(contact.isDel, 0)
             ))
             .groupBy(contact.groupId)
             .all();

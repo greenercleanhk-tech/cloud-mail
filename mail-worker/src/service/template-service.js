@@ -10,14 +10,13 @@ import { t } from '../i18n/i18n';
 const templateService = {
 
     /**
-     * 列出某域名的所有模板
+     * 列出该用户的所有模板（不按域名过滤）
      */
     async list(c, domainId, userId) {
         return orm(c)
             .select()
             .from(emailTemplate)
             .where(and(
-                eq(emailTemplate.domainId, domainId),
                 eq(emailTemplate.userId, userId),
                 eq(emailTemplate.isDel, 0)
             ))
