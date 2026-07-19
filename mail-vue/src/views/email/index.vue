@@ -105,7 +105,8 @@ async function latest() {
 
         //确保发起请求时最后一个邮件是当前账号的,或者
         if (accountId === scroll.value.latestEmail?.reqAccountId) {
-          list = await emailLatest(latestId, accountId, allReceive);
+          const domainId = route.query.domainId || null;
+          list = await emailLatest(latestId, accountId, allReceive, domainId);
         }
 
         //确保请求回来后，账号没有切换，时间排序没有改变，全部邮件类型没变
@@ -149,9 +150,10 @@ function cancelStar(email) {
 }
 
 function getEmailList(emailId, size) {
-  const accountId =  accountStore.currentAccountId;
+  const accountId = accountStore.currentAccountId;
   const allReceive = accountStore.currentAccount?.allReceive ?? 1;
-  return emailList(accountId, allReceive, emailId, params.timeSort, size, 0).then(data => {
+  const domainId = route.query.domainId || null;
+  return emailList(accountId, allReceive, emailId, params.timeSort, size, 0, domainId).then(data => {
     data.latestEmail.reqAccountId = accountId;
     data.latestEmail.allReceive = allReceive;
     return data;
