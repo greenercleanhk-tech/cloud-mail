@@ -60,6 +60,16 @@ app.post('/contact/batchDelete', async (c) => {
 });
 
 /**
+ * 按條件批量刪除（支援 groupId / keyword 過濾，刪除所有匹配結果）
+ * POST /contact/batchDelete/byFilter
+ */
+app.post('/contact/batchDelete/byFilter', async (c) => {
+    const userId = userContext.getUserId(c);
+    const res = await contactService.batchDeleteByFilter(c, await c.req.json(), userId);
+    return c.json(result.ok(res));
+});
+
+/**
  * 刪除聯絡人（單條）
  * DELETE /contact/delete
  */

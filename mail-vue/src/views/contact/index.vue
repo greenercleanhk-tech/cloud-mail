@@ -70,10 +70,28 @@
             <Icon icon="carbon:trash-can" />
             刪除所選 ({{ selectedContacts.length }})
           </el-button>
+          <el-button
+            v-if="totalCount > 0"
+            type="warning"
+            @click="handleSelectAll"
+            style="margin-left: 8px;"
+          >
+            {{ allCurrentPageSelected ? '取消全選' : '全選本頁' }}
+          </el-button>
+          <el-button
+            v-if="totalCount > 0"
+            type="danger"
+            plain
+            @click="handleDeleteAll"
+            style="margin-left: 8px;"
+          >
+            <Icon icon="carbon:trash-can" />
+            刪除全部 ({{ totalCount }})
+          </el-button>
         </div>
 
         <!-- 聯絡人表格 -->
-        <el-table :data="contacts" stripe style="width: 100%" v-loading="loading" @selection-change="handleSelectionChange">
+        <el-table ref="tableRef" :data="contacts" stripe style="width: 100%" v-loading="loading" @selection-change="handleSelectionChange">
           <el-table-column type="selection" width="40" />
           <el-table-column prop="name" :label="$t('name')" min-width="120" />
           <el-table-column :label="$t('group')" width="120">
@@ -92,11 +110,12 @@
 
         <!-- 分頁 -->
         <div class="pagination">
+          <span class="total-hint">共 {{ totalCount }} 條</span>
           <el-pagination
             v-model:current-page="page"
             :page-size="50"
             :total="totalCount"
-            layout="prev, pager, next"
+            layout="prev, pager, next, total"
             @current-change="loadContacts"
           />
         </div>
@@ -221,7 +240,7 @@ import { Icon } from '@iconify/vue';
 import { useDomainStore } from '@/store/domain.js';
 import {
   contactList, contactAdd, contactUpdate, contactDelete, contactBatchAdd,
-  contactBatchDelete,
+  contactBatchDelete, contactBatchDeleteByFilter,
   groupList, groupAdd, groupUpdate, groupDelete
 } from '@/request/contact.js';
 
@@ -237,6 +256,7 @@ const page = ref(1);
 const keyword = ref('');
 const selectedGroupId = ref(0);
 const selectedContacts = ref([]);
+const allCurrentPageSelected = ref(false);
 const showAddDialog = ref(false);
 const showGroupDialog = ref(false);
 const editingContact = ref(null);
@@ -244,6 +264,7 @@ const newGroupName = ref('');
 const showImportDialog = ref(false);
 const importLoading = ref(false);
 const uploadRef = ref();
+const tableRef = ref();
 const importPreview = ref([]);
 const importInvalidCount = ref(0);
 const importForm = reactive({
@@ -260,6 +281,8 @@ const formData = reactive({
 
 async function loadContacts() {
   loading.value = true;
+  selectedContacts.value = [];
+  allCurrentPageSelected.value = false;
   try {
     const res = await contactList({
       domainId: domainStore.currentDomainId || undefined,
@@ -267,7 +290,8 @@ async function loadContacts() {
       groupId: selectedGroupId.value,
       page: page.value
     });
-    contacts.value = res || [];
+    contacts.value = res?.list || res || [];
+    totalCount.value = res?.total || 0;
   } catch (e) {
     ElMessage.error('載入失敗');
   } finally {
@@ -287,11 +311,15 @@ async function loadGroups() {
 function selectGroup(groupId) {
   selectedGroupId.value = groupId;
   page.value = 1;
+  selectedContacts.value = [];
+  allCurrentPageSelected.value = false;
   loadContacts();
 }
 
 function handleSearch() {
   page.value = 1;
+  selectedContacts.value = [];
+  allCurrentPageSelected.value = false;
   loadContacts();
 }
 
@@ -351,6 +379,7 @@ async function handleDelete(row) {
 
 function handleSelectionChange(rows) {
   selectedContacts.value = rows;
+  allCurrentPageSelected.value = rows.length === contacts.value.length && contacts.value.length > 0;
 }
 
 async function handleBatchDelete() {
@@ -365,6 +394,44 @@ async function handleBatchDelete() {
     await contactBatchDelete({ contactIds: ids });
     ElMessage.success(`已刪除 ${ids.length} 個聯絡人`);
     selectedContacts.value = [];
+    loadContacts();
+    loadGroups();
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.message || '刪除失敗');
+  }
+}
+
+function handleSelectAll() {
+  if (allCurrentPageSelected.value) {
+    tableRef.value?.clearSelection();
+    allCurrentPageSelected.value = false;
+  } else {
+    contacts.value.forEach(row => tableRef.value?.toggleRowSelection(row, true));
+    allCurrentPageSelected.value = true;
+  }
+}
+
+async function handleDeleteAll() {
+  if (!totalCount.value) return;
+  const filterDesc = selectedGroupId.value > 0
+    ? `群組「${groups.value.find(g => g.groupId === selectedGroupId.value)?.name}」內`
+    : keyword.value ? `關鍵字「${keyword.value}」篩選` : '所有';
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除 ${filterDesc}的全部 ${totalCount.value} 個聯絡人嗎？此操作不可恢復！`,
+      '危險操作',
+      { type: 'warning', confirmButtonClass: 'el-button--danger' }
+    );
+    const params = {
+      domainId: domainStore.currentDomainId
+    };
+    if (selectedGroupId.value > 0) params.groupId = selectedGroupId.value;
+    if (keyword.value) params.keyword = keyword.value;
+    const result = await contactBatchDeleteByFilter(params);
+    const deleted = result?.count || totalCount.value;
+    ElMessage.success(`已刪除 ${deleted} 個聯絡人`);
+    selectedContacts.value = [];
+    page.value = 1;
     loadContacts();
     loadGroups();
   } catch (e) {
@@ -645,6 +712,13 @@ onMounted(() => {
   margin-top: 15px;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.total-hint {
+  font-size: 13px;
+  color: #909399;
 }
 
 .group-list {

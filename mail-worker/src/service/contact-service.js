@@ -60,7 +60,20 @@ const contactService = {
             .offset((page - 1) * size)
             .all();
 
-        return list;
+        // 同時計算總數（與 list 相同過濾條件）
+        const countResult = await orm(c)
+            .select({ cnt: count() })
+            .from(contact)
+            .where(and(
+                eq(contact.userId, userId),
+                eq(contact.isDel, 0),
+                domainId ? eq(contact.domainId, domainId) : sql`1=1`,
+                groupId && groupId > 0 ? eq(contact.groupId, groupId) : sql`1=1`,
+                keyword ? or(like(contact.name, `%${keyword}%`), like(contact.email, `%${keyword}%`)) : sql`1=1`
+            ))
+            .get();
+
+        return { list, total: countResult?.cnt || 0 };
     },
 
     /**
@@ -191,6 +204,43 @@ const contactService = {
             .run();
 
         return { count: ids.length };
+    },
+
+    /**
+     * 按條件批量刪除（軟刪除）- 支援 groupId / keyword 過濾
+     */
+    async batchDeleteByFilter(c, params, userId) {
+        const { domainId, groupId, keyword } = params;
+        const domainIdNum = Number(domainId) || 1;
+
+        // 先計算符合條件的數量
+        const countResult = await orm(c)
+            .select({ cnt: count() })
+            .from(contact)
+            .where(and(
+                eq(contact.userId, userId),
+                eq(contact.isDel, 0),
+                eq(contact.domainId, domainIdNum),
+                groupId && Number(groupId) > 0 ? eq(contact.groupId, Number(groupId)) : sql`1=1`,
+                keyword ? or(like(contact.name, `%${keyword}%`), like(contact.email, `%${keyword}%`)) : sql`1=1`
+            ))
+            .get();
+
+        const deleteConditions = [
+            eq(contact.userId, userId),
+            eq(contact.isDel, 0),
+            eq(contact.domainId, domainIdNum)
+        ];
+        if (groupId && Number(groupId) > 0) deleteConditions.push(eq(contact.groupId, Number(groupId)));
+        if (keyword) deleteConditions.push(or(like(contact.name, `%${keyword}%`), like(contact.email, `%${keyword}%`)));
+
+        await orm(c)
+            .update(contact)
+            .set({ isDel: 1 })
+            .where(and(...deleteConditions))
+            .run();
+
+        return { count: countResult?.cnt || 0 };
     },
 
     // ==================== 群組 ====================
