@@ -438,19 +438,16 @@ function handleFileChange(uploadFile, uploadFiles) {
 
     // 檢測第一行是否為標題（name/email/備注 等關鍵字）
     const first = rows[0];
-    const hasHeader = first.length >= 2 &&
-      (first[0].toLowerCase().includes('name') || first[0].toLowerCase().includes('名')) ||
-      (first[1].toLowerCase().includes('email') || first[1].toLowerCase().includes('郵箱'));
+    const isHeaderCell = (cell) => /^(name|姓名|email|郵箱|remark|備注|note)$/i.test(cell.replace(/["\s]/g, ''));
+    const hasHeader = isHeaderCell(first[0]) || (first[1] && isHeaderCell(first[1]));
     const dataRows = hasHeader ? rows.slice(1) : rows;
 
     // 判斷是否為純郵箱 CSV（只有一列且每行都是郵箱格式）
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isEmailOnly = (() => {
       if (first.length >= 2) return false; // 多列就不是純郵箱
-      // 檢查前3行是否都像郵箱
-      const sample = dataRows.slice(0, 3);
-      if (sample.length === 0) return false;
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return sample.every(cells => emailRegex.test(cells[0]));
+      if (dataRows.length === 0) return false;
+      return dataRows.every(cells => emailRegex.test(cells[0]));
     })();
 
     const parsed = [];
