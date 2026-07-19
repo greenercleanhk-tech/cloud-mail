@@ -262,6 +262,7 @@ const domainService = {
             domain: domainName,
             health: domainHealth,
             totalSent,
+            totalDelivered,
             totalBounced,
             totalUnsubscribed,
             accounts: accountStats
