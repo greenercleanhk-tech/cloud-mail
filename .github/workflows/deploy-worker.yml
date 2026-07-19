@@ -21,6 +21,12 @@ jobs:
         with:
           node-version: '22'
 
+      # Clear any cached build output to force fresh build
+      - name: Clear old dist directories
+        run: |
+          rm -rf mail-vue/dist mail-worker/dist
+          echo "Cleared old dist directories"
+
       # Build Vue frontend → outputs to mail-worker/dist/
       - name: Install Vue dependencies
         working-directory: ./mail-vue
@@ -44,7 +50,10 @@ jobs:
       # ⚠️ CRITICAL: Copy Vue build output to mail-worker/dist/ for Cloudflare Assets
       - name: Copy Vue build to Worker assets directory
         run: |
+          mkdir -p mail-worker/dist
+          ls mail-vue/dist/ || (echo "ERROR: mail-vue/dist not found, Vue build may have been cached"; exit 1)
           cp -r mail-vue/dist/* mail-worker/dist/
+          ls mail-worker/dist/ || (echo "ERROR: mail-worker/dist is empty"; exit 1)
           echo "Copied Vue build to mail-worker/dist/"
 
       - name: Deploy to Cloudflare
