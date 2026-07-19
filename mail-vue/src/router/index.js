@@ -1,4 +1,4 @@
-import {createRouter, createWebHistory, createHashHistory} from 'vue-router'
+import {createRouter, createWebHistory, createWebHashHistory} from 'vue-router'
 import NProgress from 'nprogress';
 import {useUiStore} from "@/store/ui.js";
 import {useSettingStore} from "@/store/setting.js";
@@ -168,7 +168,7 @@ const routes = [
 
 const router = createRouter({
     // 改用 Hash History：避免 Cloudflare Pages 靜態託管無法處理 SPA 路由的問題
-    history: createHashHistory(import.meta.env.BASE_URL),
+    history: createWebHashHistory(import.meta.env.BASE_URL),
     routes
 })
 
