@@ -49,7 +49,7 @@
 
       <!-- 右側：聯絡人列表 -->
       <div class="contact-panel">
-        <!-- 搜索框 -->
+        <!-- 搜索框 + 批量操作 -->
         <div class="search-bar">
           <el-input
             v-model="keyword"
@@ -61,12 +61,21 @@
               <Icon icon="carbon:search" />
             </template>
           </el-input>
+          <el-button
+            v-if="selectedContacts.length > 0"
+            type="danger"
+            @click="handleBatchDelete"
+            style="margin-left: 12px;"
+          >
+            <Icon icon="carbon:trash-can" />
+            刪除所選 ({{ selectedContacts.length }})
+          </el-button>
         </div>
 
         <!-- 聯絡人表格 -->
-        <el-table :data="contacts" stripe style="width: 100%" v-loading="loading">
+        <el-table :data="contacts" stripe style="width: 100%" v-loading="loading" @selection-change="handleSelectionChange">
+          <el-table-column type="selection" width="40" />
           <el-table-column prop="name" :label="$t('name')" min-width="120" />
-          <el-table-column prop="email" :label="$t('email')" min-width="200" />
           <el-table-column :label="$t('group')" width="120">
             <template #default="{ row }">
               {{ getGroupName(row.groupId) }}
@@ -212,6 +221,7 @@ import { Icon } from '@iconify/vue';
 import { useDomainStore } from '@/store/domain.js';
 import {
   contactList, contactAdd, contactUpdate, contactDelete, contactBatchAdd,
+  contactBatchDelete,
   groupList, groupAdd, groupUpdate, groupDelete
 } from '@/request/contact.js';
 
@@ -226,6 +236,7 @@ const totalCount = ref(0);
 const page = ref(1);
 const keyword = ref('');
 const selectedGroupId = ref(0);
+const selectedContacts = ref([]);
 const showAddDialog = ref(false);
 const showGroupDialog = ref(false);
 const editingContact = ref(null);
@@ -335,6 +346,29 @@ async function handleDelete(row) {
     loadGroups();
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('刪除失敗');
+  }
+}
+
+function handleSelectionChange(rows) {
+  selectedContacts.value = rows;
+}
+
+async function handleBatchDelete() {
+  if (!selectedContacts.value.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `確定要刪除所選的 ${selectedContacts.value.length} 個聯絡人嗎？`,
+      '批量刪除',
+      { type: 'warning' }
+    );
+    const ids = selectedContacts.value.map(r => r.contactId);
+    await contactBatchDelete({ contactIds: ids });
+    ElMessage.success(`已刪除 ${ids.length} 個聯絡人`);
+    selectedContacts.value = [];
+    loadContacts();
+    loadGroups();
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error(e.message || '刪除失敗');
   }
 }
 

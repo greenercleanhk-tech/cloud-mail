@@ -23,6 +23,10 @@ export function contactDelete(params) {
     return http.delete('/contact/delete', { params });
 }
 
+export function contactBatchDelete(data) {
+    return http.post('/contact/batchDelete', data);
+}
+
 export function groupList(params) {
     return http.get('/contact/group/list', { params });
 }
