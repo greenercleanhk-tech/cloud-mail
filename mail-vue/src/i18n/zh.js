@@ -378,7 +378,7 @@ const zh = {
     domainInvalidFormat: '域名格式不正確',
     mailboxCount: '郵箱數',
     activeJobCount: '進行中',
-    completedJobCount: '已完成任務',
+    completedJobCount: '✅已完成任務 [TEST]',
     viewDetail: '詳情',
     back: '返回',
     scheduleDetail: '任務詳情',
