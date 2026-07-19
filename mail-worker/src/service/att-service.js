@@ -9,8 +9,7 @@ import { attConst } from '../const/entity-const';
 import { parseHTML } from 'linkedom';
 import { v4 as uuidv4 } from 'uuid';
 import domainUtils from '../utils/domain-uitls';
-import { batchInsert } from '../utils/batch-utils';
-import settingService from "./setting-service";
+import settingService from './setting-service';
 
 const attService = {
 
@@ -38,7 +37,7 @@ const attService = {
 			attachments
 		);
 
-	list(c, params, userId) {
+	async list(c, params, userId) {
 		const { emailId } = params;
 
 		return orm(c).select().from(att).where(
