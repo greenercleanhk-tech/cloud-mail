@@ -315,6 +315,14 @@ function selectGroup(groupId) {
   page.value = 1;
   selectedContacts.value = [];
   allCurrentPageSelected.value = false;
+  // 切換前先設置正確的 totalCount，避免殘留舊值
+  if (groupId === 0) {
+    const total = groups.value.reduce((sum, g) => sum + (g.memberCount || 0), 0);
+    totalCount.value = total;
+  } else {
+    const g = groups.value.find(x => x.groupId === groupId);
+    totalCount.value = g?.memberCount || 0;
+  }
   loadContacts();
 }
 
