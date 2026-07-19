@@ -14,6 +14,8 @@ export const BATCH_SIZE = 100;
 export async function batchInsert(ormFn, values) {
 	if (!values || values.length === 0) return;
 	for (let i = 0; i < values.length; i += BATCH_SIZE) {
-		await ormFn(values.slice(i, i + BATCH_SIZE));
+		const batch = values.slice(i, i + BATCH_SIZE);
+		console.log(`[batchInsert] 第${Math.floor(i/BATCH_SIZE)+1}批，數量=${batch.length}，變量數=${batch.length * 7}`);
+		await ormFn(batch);
 	}
 }
