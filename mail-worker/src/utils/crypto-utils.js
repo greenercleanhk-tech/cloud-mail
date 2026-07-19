@@ -37,4 +37,12 @@ const saltHashUtils = {
 	}
 };
 
+export function base64Encode(str) {
+	return btoa(String.fromCharCode(...new TextEncoder().encode(str)));
+}
+
+export function base64Decode(str) {
+	return new TextDecoder().decode(new Uint8Array([...atob(str)].map(c => c.charCodeAt(0))));
+}
+
 export default saltHashUtils;

@@ -5,6 +5,7 @@ import app from '../hono/hono';
 import contactService from '../service/contact-service';
 import result from '../model/result';
 import userContext from '../security/user-context';
+import { base64Decode } from '../utils/crypto-utils';
 
 // ==================== 通訊錄接口 ====================
 
@@ -110,7 +111,7 @@ app.get('/contact/unsubscribe', async (c) => {
         return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>無效連結</h2><p>退訂連結無效，請聯繫我們。</p></body></html>');
     }
     try {
-        const email = Buffer.from(token, 'base64').toString('utf-8');
+        const email = base64Decode(token);
         await contactService.unsubscribe(c, email);
         return c.html(`<html><body style="font-family:sans-serif;text-align:center;padding:40px">
             <h2>✅ 退訂成功</h2>
@@ -132,7 +133,7 @@ app.get('/contact/resubscribe', async (c) => {
         return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>無效連結</h2></body></html>');
     }
     try {
-        const email = Buffer.from(token, 'base64').toString('utf-8');
+        const email = base64Decode(token);
         await contactService.resubscribe(c, email);
         return c.html(`<html><body style="font-family:sans-serif;text-align:center;padding:40px">
             <h2>✅ 已重新訂閱</h2>

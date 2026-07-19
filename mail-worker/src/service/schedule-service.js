@@ -14,6 +14,7 @@ import attService from '../service/att-service';
 import emailService from '../service/email-service';
 import settingService from '../service/setting-service';
 import domainService from '../service/domain-service';
+import { base64Encode } from '../utils/crypto-utils';
 import { eq, and, desc, inArray, count, lt, gte } from 'drizzle-orm';
 import { t } from '../i18n/i18n';
 import dayjs from 'dayjs';
@@ -323,7 +324,7 @@ const scheduleService = {
         for (const con of contacts) {
             try {
                 // 自動追加退訂連結（Base64 編碼 email 作為 token）
-                const token = Buffer.from(con.email).toString('base64');
+                const token = base64Encode(con.email);
                 const unsubLink = `${c.env.KV_URL || 'https://' + accountRow.email.split('@')[1]}/unsubscribe?token=${token}`;
                 const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
                     <a href="${unsubLink}" style="color:#999;text-decoration:underline;">退訂電子報</a>
