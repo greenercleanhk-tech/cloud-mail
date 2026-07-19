@@ -73,6 +73,9 @@
         <el-form-item :label="$t('resendApiKey')">
           <el-input v-model="formData.resendApiKey" :placeholder="$t('resendApiKeyPlaceholder')" show-password />
         </el-form-item>
+        <el-form-item :label="$t('customDomain')">
+          <el-input v-model="formData.customDomain" :placeholder="$t('customDomainPlaceholder')" />
+        </el-form-item>
         <el-form-item :label="$t('status')">
           <el-switch v-model="formData.isActive" :active-value="1" :inactive-value="0" />
         </el-form-item>
@@ -235,6 +238,7 @@ const formData = reactive({
   domain: '',
   displayName: '',
   resendApiKey: '',
+  customDomain: '',
   isActive: 1
 });
 
@@ -278,6 +282,7 @@ function handleEdit(row) {
     domain: row.domain,
     displayName: row.displayName,
     resendApiKey: row.resendApiKey || '',
+    customDomain: row.customDomain || '',
     isActive: row.isActive
   });
   showAddDialog.value = true;
@@ -384,6 +389,7 @@ function resetForm() {
     domain: '',
     displayName: '',
     resendApiKey: '',
+    customDomain: '',
     isActive: 1
   });
 }

@@ -493,7 +493,9 @@ const en = {
     bounced: 'Bounced',
     unsubscribed: 'Unsubscribed',
     senderName: 'Sender',
-    status: 'Status'
+    status: 'Status',
+    customDomain: 'Custom Domain',
+    customDomainPlaceholder: 'e.g. mail.parkin.hk, Cloudflare Workers custom domain'
 }
 
 export default en

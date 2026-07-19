@@ -468,7 +468,9 @@ const zh = {
     bounced: '退信',
     unsubscribed: '退订',
     senderName: '发件人',
-    status: '状态'
+    status: '状态',
+    customDomain: '自定义域名',
+    customDomainPlaceholder: '如 mail.parkin.hk，Cloudflare Workers 自定义域名'
 }
 
 export default zh
