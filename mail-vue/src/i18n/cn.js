@@ -387,7 +387,7 @@ const zh = {
     importCsv: 'CSV 批量导入',
     assignGroup: '选择导入到的群组',
     csvUploadTip: '点击或拖拽上传 CSV 文件',
-    csvFormatTip: '格式：姓名, 邮箱, 备注（首行会自动识别为标题并跳过）',
+    csvFormatTip: '格式：邮箱（单列）/ 姓名, 邮箱, 备注（多列，首行自动识别为标题）',
     importPreview: '预览（前 20 条）',
     invalidRows: '有 {n} 行格式无效，已跳过',
     confirmImport: '确认导入',

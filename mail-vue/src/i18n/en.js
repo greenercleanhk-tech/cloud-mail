@@ -384,7 +384,7 @@ const en = {
     importCsv: 'Import CSV',
     assignGroup: 'Assign to Group',
     csvUploadTip: 'Click or drag to upload CSV file',
-    csvFormatTip: 'Format: Name, Email, Remark (header row auto-detected)',
+    csvFormatTip: 'Format: Email (single column) / Name, Email, Remark (multi-column, header auto-detected)',
     importPreview: 'Preview (first 20 rows)',
     invalidRows: '{n} invalid rows skipped',
     confirmImport: 'Confirm Import',

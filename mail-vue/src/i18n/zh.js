@@ -400,7 +400,7 @@ const zh = {
     importCsv: 'CSV 批量導入',
     assignGroup: '選擇導入到的群組',
     csvUploadTip: '點擊或拖拽上傳 CSV 文件',
-    csvFormatTip: '格式：姓名, 郵箱, 備註（首行會自動識別為標題並跳過）',
+    csvFormatTip: '格式：郵箱（單列）/ 姓名, 郵箱, 備註（多列，首行自動識別為標題）',
     importPreview: '預覽（前 20 條）',
     invalidRows: '有 {n} 行格式無效，已跳過',
     confirmImport: '確認導入',
