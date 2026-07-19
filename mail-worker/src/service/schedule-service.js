@@ -513,7 +513,10 @@ const scheduleService = {
 
             try {
                 const token = base64Encode(contactRow.email);
-                const unsubLink = `https://cloud-mail.lauskiing520.workers.dev/contact/unsubscribe?token=${token}`;
+                // DEBUG
+                console.log('DEBUG unsubLink schedule - domainRow:', JSON.stringify(domainRow), 'custom_domain:', domainRow?.custom_domain);
+                const baseUrl = domainRow?.custom_domain ? `https://${domainRow.custom_domain}` : 'https://cloud-mail.lauskiing520.workers.dev';
+                const unsubLink = `${baseUrl}/contact/unsubscribe?token=${token}`;
                 const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;line-height:1.8;">
                     如閣下不想再收到我們的電郵，請<a href="${unsubLink}" style="color:#999;text-decoration:underline;">按這裡</a>一鍵回覆退訂。<br/>
                     If you do not wish to receive further email messages from us,<br/>

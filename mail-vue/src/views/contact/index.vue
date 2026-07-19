@@ -101,6 +101,13 @@
             </template>
           </el-table-column>
           <el-table-column prop="remark" :label="$t('remark')" min-width="150" show-overflow-tooltip />
+          <el-table-column label="退訂" width="90" align="center">
+            <template #default="{ row }">
+              <el-tag v-if="row.isUnsubscribed === 1" type="danger" size="small"
+                @click="handleResubscribe(row)" style="cursor:pointer">已退訂</el-tag>
+              <span v-else style="color:#67c23a;font-size:12px;">—</span>
+            </template>
+          </el-table-column>
           <el-table-column :label="$t('actions')" width="140" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="handleEdit(row)">{{ $t('edit') }}</el-button>
@@ -242,7 +249,7 @@ import { useDomainStore } from '@/store/domain.js';
 import {
   contactList, contactAdd, contactUpdate, contactDelete, contactBatchAdd,
   contactBatchDelete, contactBatchDeleteByFilter,
-  groupList, groupAdd, groupUpdate, groupDelete
+  groupList, groupAdd, groupUpdate, groupDelete, contactResubscribe
 } from '@/request/contact.js';
 
 const domainStore = useDomainStore();
@@ -380,6 +387,17 @@ async function handleDelete(row) {
     loadGroups();
   } catch (e) {
     if (e !== 'cancel') ElMessage.error('刪除失敗');
+  }
+}
+
+async function handleResubscribe(row) {
+  try {
+    await ElMessageBox.confirm(`確定要重新訂閱 ${row.email} 嗎？`, '重新訂閱', { type: 'info' });
+    await contactResubscribe({ email: row.email });
+    ElMessage.success('已重新訂閱');
+    loadContacts();
+  } catch (e) {
+    if (e !== 'cancel') ElMessage.error('操作失敗');
   }
 }
 

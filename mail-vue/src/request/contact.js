@@ -46,3 +46,7 @@ export function groupUpdate(data) {
 export function groupDelete(params) {
     return http.delete('/contact/group/delete', { params });
 }
+
+export function contactResubscribe(data) {
+    return http.post('/contact/resubscribe', data);
+}

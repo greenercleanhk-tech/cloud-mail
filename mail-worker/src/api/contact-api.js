@@ -163,3 +163,17 @@ app.get('/contact/resubscribe', async (c) => {
         return c.html('<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>操作失敗</h2></body></html>');
     }
 });
+
+/**
+ * 後台重新訂閱接口（管理員用）
+ * POST /contact/resubscribe
+ * Body: { email: string }
+ */
+app.post('/contact/resubscribe', async (c) => {
+    const { email } = await c.req.json();
+    if (!email) {
+        return c.json(result.fail('email 不能為空'), 400);
+    }
+    await contactService.resubscribe(c, email);
+    return c.json(result.ok());
+});

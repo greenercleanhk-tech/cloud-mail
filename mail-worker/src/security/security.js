@@ -19,7 +19,8 @@ const exclude = [
 	'/telegram',
 	'/test',
 	'/oauth',
-	'/admin'
+	'/admin',
+	'/contact/unsubscribe'
 ];
 
 const requirePerms = [

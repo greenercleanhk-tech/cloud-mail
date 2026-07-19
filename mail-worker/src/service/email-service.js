@@ -241,8 +241,11 @@ const emailService = {
 		}
 
 		const domain = emailUtils.getDomain(accountRow.email);
-		// ����ȡ�������� resendApiKey���]�Єt��ϵ�y�O�õ� resendTokens
-		const domainRow = await domainService.getByDomain(c, domain);
+		let domainRow = await domainService.getById(c, accountRow.domainId);
+		// getById 失敗時（舊帳戶 domainId 為 0 或無效），用郵箱地址反查
+		if (!domainRow) {
+			domainRow = await domainService.getByDomain(c, domain);
+		}
 		const resendToken = (domainRow && domainRow.resendApiKey) ? domainRow.resendApiKey : resendTokens[domain];
 		const useCloudflareEmail = !!c.env.email;
 
@@ -274,8 +277,11 @@ const emailService = {
 		// 自動追加退訂連結（直接發送也需追加）
 		if (receiveEmail && receiveEmail.length > 0 && !allInternal) {
 			const token = base64Encode(receiveEmail[0]);
-			// 直接用 Worker URL，不再折騰自定義域名
-			const unsubLink = `https://cloud-mail.lauskiing520.workers.dev/contact/unsubscribe?token=${token}`;
+			// 優先使用域名自訂域名，否则用 Workers 默認域名
+			const baseUrl = domainRow?.custom_domain
+				? `https://${domainRow.custom_domain}`
+				: 'https://cloud-mail.lauskiing520.workers.dev';
+			const unsubLink = `${baseUrl}/contact/unsubscribe?token=${token}`;
 			html += `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;line-height:1.8;">
 				如閣下不想再收到我們的電郵，請<a href="${unsubLink}" style="color:#999;text-decoration:underline;">按這裡</a>一鍵回覆退訂。<br/>
 				If you do not wish to receive further email messages from us,<br/>
