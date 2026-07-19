@@ -122,10 +122,14 @@ const contactService = {
 
         console.log(`[batchAdd] 收到 ${contacts.length} 條聯絡人`);
 
+        // 收集 unique groupIds 供日誌確認
+        const groupIds = [...new Set(contacts.map(c => c.groupId))];
+        console.log(`[batchAdd] 這些聯絡人的 groupIds: ${JSON.stringify(groupIds)}`);
+
         const values = contacts.map(item => ({
             name: item.name || item.email.split('@')[0],
             email: item.email,
-            groupId: item.groupId || 0,
+            groupId: Number(item.groupId) || 0,
             domainId: domainId || 1,
             userId,
             remark: item.remark || '',
