@@ -253,6 +253,7 @@ const domainService = {
 
         // 域名級統計
         const totalSent = accountStats.reduce((sum, a) => sum + a.sent, 0);
+        const totalDelivered = accountStats.reduce((sum, a) => sum + a.delivered, 0);
         const totalBounced = accountStats.reduce((sum, a) => sum + a.bounced, 0);
         const totalUnsubscribed = accountStats.reduce((sum, a) => sum + a.unsubscribed, 0);
         const domainHealth = totalSent > 0 ? Math.round(((totalSent - totalBounced) / totalSent) * 100) : 100;
