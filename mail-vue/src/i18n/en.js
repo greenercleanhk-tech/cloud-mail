@@ -495,7 +495,17 @@ const en = {
     senderName: 'Sender',
     status: 'Status',
     customDomain: 'Custom Domain',
-    customDomainPlaceholder: 'e.g. mail.parkin.hk, Cloudflare Workers custom domain'
+    customDomainPlaceholder: 'e.g. mail.parkin.hk, Cloudflare Workers custom domain',
+
+    // ---------- Unsubscribe Page ----------
+    unsubscribeProcessing: 'Processing unsubscribe…',
+    unsubscribeSuccess: '✅ Unsubscribed Successfully',
+    unsubscribeSuccessDesc: 'You have been successfully unsubscribed from marketing emails.<br>You will no longer receive promotional emails from us.',
+    unsubscribeFailed: '❌ Unsubscription Failed',
+    unsubscribeFailedDesc: 'Please try again later, or contact us.',
+    unsubscribeInvalid: '⚠️ Invalid Link',
+    unsubscribeInvalidDesc: 'This unsubscribe link is invalid. Please contact us.',
+    retry: 'Retry',
 }
 
 export default en

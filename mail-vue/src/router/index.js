@@ -140,6 +140,11 @@ const routes = [
         component: () => import('@/views/login/index.vue')
     },
     {
+        path: '/contact/unsubscribe',
+        name: 'unsubscribe',
+        component: () => import('@/views/unsubscribe/index.vue')
+    },
+    {
         path: '/test',
         name: 'test',
         component: () => import('@/views/test/index.vue')
@@ -180,7 +185,7 @@ router.beforeEach((to, from, next) => {
 
     const token = localStorage.getItem('token')
 
-    if (!token && to.name !== 'login') {
+    if (!token && to.name !== 'login' && to.name !== 'unsubscribe') {
         return next({name: 'login'})
     }
 

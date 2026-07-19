@@ -495,6 +495,16 @@ const zh = {
     senderName: '發件人',
     status: '狀態',
     customDomain: '自訂網域',
-    customDomainPlaceholder: '如 mail.parkin.hk，Cloudflare Workers 自訂網域'
+    customDomainPlaceholder: '如 mail.parkin.hk，Cloudflare Workers 自訂網域',
+
+    // ---------- 退訂頁 ----------
+    unsubscribeProcessing: '正在處理退訂…',
+    unsubscribeSuccess: '✅ 退訂成功',
+    unsubscribeSuccessDesc: '您已成功退訂營銷郵件。<br>您不會再收到我們的推廣郵件。',
+    unsubscribeFailed: '❌ 退訂失敗',
+    unsubscribeFailedDesc: '請稍後再試，或聯繫我們。',
+    unsubscribeInvalid: '⚠️ 無效連結',
+    unsubscribeInvalidDesc: '退訂連結無效，請聯繫我們。',
+    retry: '重試',
 }
 export default zh
