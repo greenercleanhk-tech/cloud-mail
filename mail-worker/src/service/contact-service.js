@@ -51,7 +51,29 @@ const contactService = {
             .where(and(...conditions))
             .get();
 
-        return { list, total: countResult?.cnt || 0 };
+        // allCount：全部聯絡人總數（不受 groupId 影響，用於「全部聯繫人」標籤）
+        const allConditions = [
+            eq(contact.userId, userId),
+            eq(contact.isDel, 0),
+            domainId ? eq(contact.domainId, domainId) : sql`1=1`
+        ];
+        if (keyword) {
+            allConditions.push(or(
+                like(contact.name, `%${keyword}%`),
+                like(contact.email, `%${keyword}%`)
+            ));
+        }
+        const allResult = await orm(c)
+            .select({ cnt: count() })
+            .from(contact)
+            .where(and(...allConditions))
+            .get();
+
+        return {
+            list,
+            total: countResult?.cnt || 0,
+            allCount: allResult?.cnt || 0
+        };
     },
 
     /**
