@@ -104,7 +104,7 @@ const zh = {
 		'templateIdRequired': '模板ID不能为空',
 		'templateNotFound': '模板不存在',
 		'contactGroupNotFound': '通讯组不存在',
-		'scheduleFieldRequired': '任务名称、域名、模板、通讯组、数量和发送时间不能为空',
+		'scheduleFieldRequired': '任务名称、域名、模板、通讯组和发送时间不能为空',
 		'noAccountInDomain': '该域名下没有可用的发件邮箱',
 		'noRecipient': '收件人数量为0'
 	}

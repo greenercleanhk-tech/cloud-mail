@@ -15,6 +15,9 @@ export const domain = sqliteTable('domain', {
     mxStatus: text('mx_status').default('pending'),       // pending/ok/failed
     spfStatus: text('spf_status').default('pending'),    // pending/ok/failed
     dkimStatus: text('dkim_status').default('pending'),  // pending/ok/failed
+    dailyLimit: integer('daily_limit').default(500).notNull(),  // 每日發件上限
+    sentToday: integer('sent_today').default(0).notNull(),     // 今日已發（跨帳號共享）
+    lastSentDate: text('last_sent_date').default(''),         // 上次發送日期（YYYY-MM-DD）
     createTime: text('create_time').default(sql`datetime('now', 'localtime')`).notNull(),
     isDel: integer('is_del').default(0).notNull()        // 軟刪除
 });

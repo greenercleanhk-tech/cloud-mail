@@ -104,7 +104,7 @@ const en = {
 		'templateIdRequired': 'Template ID is required',
 		'templateNotFound': 'Template not found',
 		'contactGroupNotFound': 'Contact group not found',
-		'scheduleFieldRequired': 'Name, domain, template, group, count and time are required',
+		'scheduleFieldRequired': 'Name, domain, template, group and time are required',
 		'noAccountInDomain': 'No available sending accounts in this domain',
 		'noRecipient': 'Recipient count is 0'
 	}
