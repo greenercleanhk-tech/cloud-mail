@@ -3,8 +3,9 @@
  * D1 bytecode 限制：每批次需足夠小以避免超限，同時又需足夠大以在 30 秒 CPU 內完成
  * 869 條紀錄，目標 ≤ 30 秒 CPU 時間
  * 測試下來：BATCH_SIZE=30 兼顧速度與穩定性
+ * 2026-07-19：部署端仍爆 offset 915，降為 10 更保守
  */
-export const BATCH_SIZE = 30;
+export const BATCH_SIZE = 10;
 
 /**
  * 將大數組分批插入
