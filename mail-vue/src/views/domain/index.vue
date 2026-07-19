@@ -48,9 +48,10 @@
 
       <el-table-column prop="createTime" :label="$t('createTime')" width="160" />
 
-      <el-table-column :label="$t('actions')" width="160" fixed="right">
+      <el-table-column :label="$t('actions')" width="240" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="handleEdit(row)">{{ $t('edit') }}</el-button>
+          <el-button link type="success" @click="handleMailboxes(row)">{{ $t('mailboxes') }}</el-button>
           <el-button link type="danger" @click="handleDelete(row)">{{ $t('delete') }}</el-button>
         </template>
       </el-table-column>
@@ -82,6 +83,57 @@
           {{ $t('confirm') }}
         </el-button>
       </template>
+    </el-dialog>
+
+    <!-- 域名郵箱統計對話框 -->
+    <el-dialog v-model="showMailboxesDialog" :title="`${statsDomain?.domain ?? ''} - ${$t('mailboxStats')}`" width="720px">
+      <div v-if="!mailboxesStats" style="text-align:center;padding:40px;color:#999">載入中...</div>
+      <div v-else>
+        <!-- 域名總覽 -->
+        <div class="domain-stats-summary">
+          <div class="stat-card" :class="getHealthClass(mailboxesStats.health)">
+            <div class="stat-value">{{ mailboxesStats.health }}%</div>
+            <div class="stat-label">{{ $t('domainHealth') }}</div>
+          </div>
+          <div class="stat-card stat-sent">
+            <div class="stat-value">{{ mailboxesStats.totalSent }}</div>
+            <div class="stat-label">{{ $t('totalSent') }}</div>
+          </div>
+          <div class="stat-card stat-delivered">
+            <div class="stat-value">{{ mailboxesStats.totalDelivered }}</div>
+            <div class="stat-label">{{ $t('totalDelivered') }}</div>
+          </div>
+          <div class="stat-card stat-bounced">
+            <div class="stat-value">{{ mailboxesStats.totalBounced }}</div>
+            <div class="stat-label">{{ $t('totalBounced') }}</div>
+          </div>
+          <div class="stat-card stat-unsub">
+            <div class="stat-value">{{ mailboxesStats.totalUnsubscribed }}</div>
+            <div class="stat-label">{{ $t('totalUnsubscribed') }}</div>
+          </div>
+        </div>
+
+        <!-- 郵箱列表 -->
+        <el-table :data="mailboxesStats.accounts" stripe size="small" style="margin-top:16px">
+          <el-table-column prop="email" :label="$t('email')" min-width="180" />
+          <el-table-column prop="name" :label="$t('senderName')" width="120" />
+          <el-table-column :label="$t('health')" width="100">
+            <template #default="{ row }">
+              <el-tag :type="getHealthTagType(row.health)" size="small">
+                {{ row.health }}%
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sent" :label="$t('sent')" width="80" align="center" />
+          <el-table-column prop="delivered" :label="$t('delivered')" width="80" align="center" />
+          <el-table-column prop="bounced" :label="$t('bounced')" width="80" align="center">
+            <template #default="{ row }">
+              <span :style="{ color: row.bounced > 0 ? '#E64340' : '' }">{{ row.bounced }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="unsubscribed" :label="$t('unsubscribed')" width="100" align="center" />
+        </el-table>
+      </div>
     </el-dialog>
 
     <!-- 批量添加郵箱對話框 -->
@@ -127,7 +179,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Icon } from '@iconify/vue';
-import { domainList as getDomainList, domainAdd, domainUpdate, domainDelete } from '@/request/domain.js';
+import { domainList as getDomainList, domainAdd, domainUpdate, domainDelete, domainStats } from '@/request/domain.js';
 import { accountAdd } from '@/request/account.js';
 import { useSettingStore } from '@/store/setting.js';
 import { useDomainStore } from '@/store/domain.js';
@@ -142,6 +194,11 @@ const showAddDialog = ref(false);
 const editingDomain = ref(null);
 const showBatchAddDialog = ref(false);
 const batchLoading = ref(false);
+
+// 郵箱統計對話框
+const showMailboxesDialog = ref(false);
+const mailboxesStats = ref(null);
+const statsDomain = ref(null);
 const batchForm = reactive({
   domainId: null,
   prefixes: ''
@@ -261,6 +318,32 @@ async function handleDelete(row) {
   }
 }
 
+// 域名健康度顏色
+function getHealthClass(health) {
+  if (health >= 90) return 'health-good';
+  if (health >= 70) return 'health-warn';
+  return 'health-bad';
+}
+
+function getHealthTagType(health) {
+  if (health >= 90) return 'success';
+  if (health >= 70) return 'warning';
+  return 'danger';
+}
+
+// 打開名下郵箱統計
+async function handleMailboxes(row) {
+  statsDomain.value = row;
+  mailboxesStats.value = null;
+  showMailboxesDialog.value = true;
+  try {
+    const res = await domainStats({ domainId: row.domainId });
+    mailboxesStats.value = res || null;
+  } catch (e) {
+    ElMessage.error('載入郵箱統計失敗：' + (e.message || String(e)));
+  }
+}
+
 // 重置表單
 function resetForm() {
   Object.assign(formData, {
@@ -357,4 +440,41 @@ onMounted(() => {
 .status-ok { color: #67c23a; }
 .status-pending { color: #e6a23c; }
 .status-failed { color: #f56c6c; }
+
+.domain-stats-summary {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 100px;
+  padding: 16px 12px;
+  border-radius: 8px;
+  text-align: center;
+  background: #f5f7fa;
+  border: 1px solid #ebeef5;
+
+  .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #303133;
+    line-height: 1.2;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 6px;
+  }
+
+  &.health-good { background: #f0f9eb; border-color: #c2e7b0; .stat-value { color: #67c23a; } }
+  &.health-warn  { background: #fdf6ec; border-color: #f5dab1; .stat-value { color: #e6a23c; } }
+  &.health-bad   { background: #fef0f0; border-color: #fbc4c4; .stat-value { color: #f56c6c; } }
+  &.stat-sent    { background: #ecf5ff; border-color: #b3d8fd; }
+  &.stat-delivered { background: #f0f9eb; border-color: #c2e7b0; }
+  &.stat-bounced  { background: #fef0f0; border-color: #fbc4c4; }
+  &.stat-unsub    { background: #fdf6ec; border-color: #f5dab1; }
+}
 </style>

@@ -461,6 +461,16 @@ function formatImage(content) {
 }
 
 async function open() {
+  // ★ 優先使用當前選中的郵箱（從側邊欄帳號面板選擇的）
+  if (accountStore.currentAccount && accountStore.currentAccount.email) {
+    form.sendEmail = accountStore.currentAccount.email;
+    form.accountId = accountStore.currentAccount.accountId;
+    form.name = accountStore.currentAccount.name || userStore.user.name;
+    show.value = true;
+    editor.value.focus();
+    return;
+  }
+
   // 兜底：若 currentDomainId 未設置，主動從 domainStore 選第一個
   if (!domainStore.currentDomainId && domainStore.domainList.length > 0) {
     const first = domainStore.domainList[0];

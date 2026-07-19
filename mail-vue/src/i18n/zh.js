@@ -478,6 +478,20 @@ const zh = {
     progress: '進度',
     completed: '已完成',
     cancelled: '已取消',
-    content: '內容'
+    content: '內容',
+
+    // ---------- 郵箱統計 ----------
+    mailboxes: '名下郵箱',
+    mailboxStats: '郵箱統計',
+    domainHealth: '域名健康度',
+    totalSent: '總發送',
+    totalDelivered: '總送達',
+    totalBounced: '總退信',
+    totalUnsubscribed: '總退訂',
+    health: '健康度',
+    delivered: '送達',
+    bounced: '退信',
+    unsubscribed: '退訂',
+    senderName: '發件人'
 }
 export default zh

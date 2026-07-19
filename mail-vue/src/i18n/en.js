@@ -478,7 +478,21 @@ const en = {
     progress: 'Progress',
     completed: 'Completed',
     cancelled: 'Cancelled',
-    content: 'Content'
+    content: 'Content',
+
+    // ---------- Mailbox Stats ----------
+    mailboxes: 'Mailboxes',
+    mailboxStats: 'Mailbox Stats',
+    domainHealth: 'Domain Health',
+    totalSent: 'Total Sent',
+    totalDelivered: 'Total Delivered',
+    totalBounced: 'Total Bounced',
+    totalUnsubscribed: 'Total Unsubscribed',
+    health: 'Health',
+    delivered: 'Delivered',
+    bounced: 'Bounced',
+    unsubscribed: 'Unsubscribed',
+    senderName: 'Sender'
 }
 
 export default en

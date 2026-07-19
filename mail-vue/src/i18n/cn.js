@@ -453,7 +453,21 @@ const zh = {
     domainSelector: '当前域名',
     switchDomain: '切换域名',
     noDomains: '暫无域名，請先添加域名',
-    totalContacts: '通讯录共 {count} 個'
+    totalContacts: '通讯录共 {count} 個',
+
+    // ---------- 邮箱统计 ----------
+    mailboxes: '名下邮箱',
+    mailboxStats: '邮箱统计',
+    domainHealth: '域名健康度',
+    totalSent: '总发送',
+    totalDelivered: '总送达',
+    totalBounced: '总退信',
+    totalUnsubscribed: '总退订',
+    health: '健康度',
+    delivered: '送达',
+    bounced: '退信',
+    unsubscribed: '退订',
+    senderName: '发件人'
 }
 
 export default zh
