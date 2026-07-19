@@ -36,6 +36,7 @@ const attService = {
 			batch => orm(c).insert(att).values(batch).run(),
 			attachments
 		);
+	},
 
 	async list(c, params, userId) {
 		const { emailId } = params;
