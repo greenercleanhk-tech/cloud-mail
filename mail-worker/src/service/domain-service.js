@@ -8,7 +8,8 @@ import { domain } from '../entity/domain';
 import { account } from '../entity/account';
 import { email } from '../entity/email';
 import { contact } from '../entity/contact';
-import { eq, and, sql, count, like } from 'drizzle-orm';
+import { scheduleJob } from '../entity/schedule-job';
+import { eq, and, sql, count, like, inArray } from 'drizzle-orm';
 import { emailConst } from '../const/entity-const';
 import { t } from '../i18n/i18n';
 
@@ -27,7 +28,40 @@ const domainService = {
             .where(eq(domain.isDel, 0))
             .orderBy(domain.createTime)
             .all();
-        return list;
+
+        // 批量查詢郵箱數
+        const accountCounts = await orm(c)
+            .select({ domainId: account.domainId, cnt: count() })
+            .from(account)
+            .where(eq(account.isDel, 0))
+            .groupBy(account.domainId)
+            .all();
+        const accountCountMap = Object.fromEntries(accountCounts.map(r => [r.domainId, r.cnt]));
+
+        // 批量查詢進行中任務數（排除 completed / cancelled）
+        const activeJobCounts = await orm(c)
+            .select({ domainId: scheduleJob.domainId, cnt: count() })
+            .from(scheduleJob)
+            .where(sql`${scheduleJob.status} NOT IN ('completed', 'cancelled') AND ${scheduleJob.isDel} = 0`)
+            .groupBy(scheduleJob.domainId)
+            .all();
+        const activeJobMap = Object.fromEntries(activeJobCounts.map(r => [r.domainId, r.cnt]));
+
+        // 批量查詢已完成任務數
+        const doneJobCounts = await orm(c)
+            .select({ domainId: scheduleJob.domainId, cnt: count() })
+            .from(scheduleJob)
+            .where(sql`${scheduleJob.status} = 'completed' AND ${scheduleJob.isDel} = 0`)
+            .groupBy(scheduleJob.domainId)
+            .all();
+        const doneJobMap = Object.fromEntries(doneJobCounts.map(r => [r.domainId, r.cnt]));
+
+        return list.map(d => ({
+            ...d,
+            mailboxCount: accountCountMap[d.domainId] ?? 0,
+            activeJobCount: activeJobMap[d.domainId] ?? 0,
+            completedJobCount: doneJobMap[d.domainId] ?? 0
+        }));
     },
 
     /**

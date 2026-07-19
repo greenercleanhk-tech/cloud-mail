@@ -15,7 +15,7 @@
 
     <!-- 域名列表 -->
     <el-table :data="domainList" stripe style="width: 100%" v-loading="loading">
-      <el-table-column prop="domain" :label="$t('domain')" min-width="180">
+      <el-table-column prop="domain" :label="$t('domain')" min-width="150">
         <template #default="{ row }">
           <div class="domain-cell">
             <span class="domain-name">{{ row.domain }}</span>
@@ -25,9 +25,9 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="displayName" :label="$t('displayName')" min-width="120" />
+      <el-table-column prop="displayName" :label="$t('displayName')" width="130" />
 
-      <el-table-column :label="$t('dnsStatus')" min-width="200">
+      <el-table-column :label="$t('dnsStatus')" min-width="160">
         <template #default="{ row }">
           <div class="dns-status">
             <span class="dns-item">
@@ -46,9 +46,29 @@
         </template>
       </el-table-column>
 
-      <el-table-column prop="createTime" :label="$t('createTime')" width="160" />
+      <el-table-column prop="createTime" :label="$t('createTime')" width="150" />
 
-      <el-table-column :label="$t('actions')" width="240" fixed="right">
+      <el-table-column :label="$t('mailboxCount')" width="72" align="center">
+        <template #default="{ row }">
+          <el-tag type="info" size="small">{{ row.mailboxCount ?? 0 }}</el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('activeJobCount')" width="72" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="(row.activeJobCount ?? 0) > 0" type="warning" size="small">{{ row.activeJobCount }}</el-tag>
+          <span v-else style="color:#c0c4cc">0</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('completedJobCount')" width="72" align="center">
+        <template #default="{ row }">
+          <el-tag v-if="(row.completedJobCount ?? 0) > 0" type="success" size="small">{{ row.completedJobCount }}</el-tag>
+          <span v-else style="color:#c0c4cc">0</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('actions')" width="220" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="handleEdit(row)">{{ $t('edit') }}</el-button>
           <el-button link type="success" @click="handleMailboxes(row)">{{ $t('mailboxes') }}</el-button>
