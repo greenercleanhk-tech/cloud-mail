@@ -326,9 +326,16 @@ const scheduleService = {
             try {
                 // 自動追加退訂連結（Base64 編碼 email 作為 token）
                 const token = base64Encode(con.email);
-                const unsubLink = `${c.env.KV_URL || 'https://' + accountRow.email.split('@')[1]}/unsubscribe?token=${token}`;
-                const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
-                    <a href="${unsubLink}" style="color:#999;text-decoration:underline;">退訂電子報</a>
+                const customDomainHost = (domainRow && domainRow.customDomain)
+                    ? domainRow.customDomain
+                    : (c.env.KV_URL ? c.env.KV_URL.replace('https://', '').replace('http://', '') : null);
+                const unsubLink = customDomainHost
+                    ? `https://${customDomainHost}/contact/unsubscribe?token=${token}`
+                    : `https://cloud-mail.lauskiing520.workers.dev/contact/unsubscribe?token=${token}`;
+                const unsubHtml = `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;line-height:1.8;">
+                    如閣下不想再收到我們的電郵，請<a href="${unsubLink}" style="color:#999;text-decoration:underline;">按這裡</a>一鍵回覆退訂。<br/>
+                    If you do not wish to receive further email messages from us,<br/>
+                    please <a href="${unsubLink}" style="color:#999;text-decoration:underline;">click here</a> to reply and unsubscribe.
                 </div>`;
                 const htmlWithUnsub = template.content + unsubHtml;
 

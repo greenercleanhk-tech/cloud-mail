@@ -11,6 +11,7 @@ export const domain = sqliteTable('domain', {
     displayName: text('display_name').default(''),        // 如 綠適居
     isActive: integer('is_active').default(1).notNull(), // 1=啟用 0=停用
     resendApiKey: text('resend_api_key').default(''),    // 該域名專用 Resend API Key
+    customDomain: text('custom_domain').default(''),     // 自訂網域 URL，如 mail.parkin.hk
     mxStatus: text('mx_status').default('pending'),       // pending/ok/failed
     spfStatus: text('spf_status').default('pending'),    // pending/ok/failed
     dkimStatus: text('dkim_status').default('pending'),  // pending/ok/failed

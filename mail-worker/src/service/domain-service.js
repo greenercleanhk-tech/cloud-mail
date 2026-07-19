@@ -141,11 +141,12 @@ const domainService = {
      * @returns {Promise<void>}
      */
     async update(c, params) {
-        const { domainId, displayName, resendApiKey, isActive, mxStatus, spfStatus, dkimStatus } = params;
+        const { domainId, displayName, resendApiKey, customDomain, isActive, mxStatus, spfStatus, dkimStatus } = params;
 
         const updateData = {};
         if (displayName !== undefined) updateData.displayName = displayName;
         if (resendApiKey !== undefined) updateData.resendApiKey = resendApiKey;
+        if (customDomain !== undefined) updateData.customDomain = customDomain;
         if (isActive !== undefined) updateData.isActive = isActive;
         if (mxStatus !== undefined) updateData.mxStatus = mxStatus;
         if (spfStatus !== undefined) updateData.spfStatus = spfStatus;
