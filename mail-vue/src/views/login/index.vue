@@ -148,7 +148,7 @@
 
 <script setup>
 import router from "@/router";
-import {computed, nextTick, reactive, ref} from "vue";
+import {computed, nextTick, onMounted, reactive, ref} from "vue";
 import {login} from "@/request/login.js";
 import {register} from "@/request/login.js";
 import {websiteConfig} from "@/request/setting.js";
@@ -574,6 +574,11 @@ function submitRegister() {
     }
   });
 }
+
+// 保證頁面加載時從 API 獲取域名列表，避免下拉框空白
+onMounted(() => {
+  refreshWebsiteConfig();
+});
 
 </script>
 
