@@ -288,7 +288,8 @@ async function loadContacts() {
     const res = await contactList({
       domainId: domainStore.currentDomainId || undefined,
       keyword: keyword.value,
-      groupId: selectedGroupId.value,
+      // selectedGroupId > 0 才傳 groupId；等於 0 為「全部聯繫人」，不傳 groupId
+      ...(selectedGroupId.value > 0 && { groupId: selectedGroupId.value }),
       page: page.value
     });
     contacts.value = res?.list || res || [];
@@ -621,6 +622,8 @@ async function handleImport() {
       domainId: domainStore.currentDomainId
     });
     ElMessage.success(`成功導入 ${contacts.length} 個聯絡人`);
+    // 等待消息顯示後再關閉對話框
+    await new Promise(r => setTimeout(r, 800));
     showImportDialog.value = false;
     importPreview.value = [];
     importInvalidCount.value = 0;

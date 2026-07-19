@@ -39,7 +39,9 @@ export async function batchInsertNative(c, tableName, columns, values, domainId,
 				if (col === 'is_del') return 0;
 				if (col === 'is_unsubscribed') return 0;
 				if (col === 'create_time') return new Date().toISOString();
-				return row[col] ?? null;
+				// 支援 camelCase（JS 慣例）和 snake_case（DB 慣例）兩種 key
+				const camelKey = col.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
+				return row[camelKey] ?? row[col] ?? null;
 			});
 
 			const result = await c.env.db.prepare(sql).bind(...params).run();
