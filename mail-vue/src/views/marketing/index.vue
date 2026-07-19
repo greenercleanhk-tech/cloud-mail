@@ -102,11 +102,15 @@
                 <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('actions')" width="140" fixed="right">
+            <el-table-column :label="$t('actions')" width="200" fixed="right">
               <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="$router.push('/schedule/' + row.jobId)">
+                  {{ $t('viewDetail') }}
+                </el-button>
                 <el-button
                   v-if="row.status === 'pending' || row.status === 'running'"
                   link type="danger"
+                  size="small"
                   @click="handleCancelSchedule(row)"
                 >{{ $t('cancel') }}</el-button>
                 <el-tag v-else-if="row.status === 'completed'" type="success" size="small">{{ $t('completed') }}</el-tag>

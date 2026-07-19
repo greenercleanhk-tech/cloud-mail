@@ -131,6 +131,15 @@ const routes = [
                     menu: true
                 }
             },
+            {
+                path: '/schedule/:jobId',
+                name: 'schedule-detail',
+                component: () => import('@/views/marketing/schedule-detail.vue'),
+                meta: {
+                    title: 'scheduleDetail',
+                    menu: false
+                }
+            },
         ]
 
     },

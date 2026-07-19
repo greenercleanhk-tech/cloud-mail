@@ -49,7 +49,7 @@ const scheduleService = {
     },
 
     /**
-     * 根據 jobId 獲取任務詳情（含子任務）
+     * 根據 jobId 獲取任務詳情（含子任務 + 郵箱詳情）
      */
     async getById(c, jobId) {
         const job = await orm(c)
@@ -64,12 +64,66 @@ const scheduleService = {
         if (!job) return null;
 
         const tasks = await orm(c)
-            .select()
+            .select({ task: scheduleTask, account: account })
             .from(scheduleTask)
+            .leftJoin(account, eq(scheduleTask.accountId, account.accountId))
             .where(eq(scheduleTask.jobId, Number(jobId)))
             .all();
 
-        return { ...job, tasks };
+        // 獲取域名信息用於計算日限額
+        const domainRow = await orm(c)
+            .select()
+            .from(domain)
+            .where(eq(domain.domainId, job.domainId))
+            .get();
+
+        const dailyLimit = domainRow?.dailyLimit || 500;
+
+        // 格式化每個任務的郵箱詳情
+        const formattedTasks = tasks.map(({ task, account: acc }) => {
+            let accountPool = [];
+            try { accountPool = JSON.parse(task.accountPool || '[]'); } catch {}
+            const perMailboxLimit = Math.floor(dailyLimit / (accountPool.length || 1));
+
+            // 計算整體進度
+            const totalRecipients = job.totalRecipients || 0;
+            const cursor = task.cursor || 0;
+            const progressPct = totalRecipients > 0 ? Math.round((cursor / totalRecipients) * 100) : 0;
+
+            // 計算每個郵箱的已發量（從 accountPool 中各郵箱的份額）
+            // cursor 代表已經處理到第幾個聯絡人
+            const poolSize = accountPool.length || 1;
+            const contactsPerMailbox = Math.ceil(totalRecipients / poolSize);
+
+            // 當前郵箱在 pool 中的 index
+            const currentPoolIdx = task.accountPoolIndex || 0;
+
+            return {
+                taskId: task.taskId,
+                status: task.status,
+                cursor,
+                totalRecipients,
+                progressPct,
+                sentToday: task.sentToday || 0,
+                perMailboxLimit,
+                accountPool,
+                accountPoolIndex: task.accountPoolIndex || 0,
+                currentMailboxEmail: acc?.email || '-',
+                currentMailboxStatus: acc?.status || '-',
+                lastSentDate: task.lastSentDate || '',
+                scheduledAt: task.scheduledAt,
+                finishedAt: task.finishedAt,
+                sentCount: task.sentCount || 0,
+                failedCount: task.failedCount || 0,
+            };
+        });
+
+        return {
+            ...job,
+            tasks: formattedTasks,
+            domainDisplay: domainRow?.domain || '-',
+            dailyLimit,
+        };
     },
 
     /**
@@ -227,7 +281,18 @@ const scheduleService = {
         const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
         const today = dayjs().format('YYYY-MM-DD');
 
-        // 找出所有待發送的子任務（pending 或 waiting_limit 且計劃時間已到）
+        // 0 點 cron：重置所有已停止的 waiting 任務（lastSentDate = '' 表示已停等重置）
+        if (now.endsWith('00:00:00')) {
+            await orm(c)
+                .update(scheduleTask)
+                .set({ lastSentDate: today, sentToday: 0, accountPoolIndex: 0, status: 'pending' })
+                .where(sql`${scheduleTask.status} IN ('waiting_limit', 'waiting_mailbox') AND ${scheduleTask.lastSentDate} = ''`)
+                .run();
+        }
+
+        // 找出所有待發送的子任務
+        // pending：正常撈
+        // waiting_limit / waiting_mailbox：lastSentDate = '' 才撈（已停、等 0 點重置後才生效）
         const pendingTasks = await orm(c)
             .select({
                 task: scheduleTask,
@@ -236,9 +301,19 @@ const scheduleService = {
             .from(scheduleTask)
             .leftJoin(scheduleJob, eq(scheduleTask.jobId, scheduleJob.jobId))
             .where(and(
-                sql`(${scheduleTask.status} = 'pending' OR ${scheduleTask.status} = 'waiting_limit' OR ${scheduleTask.status} = 'waiting_mailbox')`,
+                eq(scheduleJob.status, 'running'),
                 lte(scheduleTask.scheduledAt, now),
-                eq(scheduleJob.status, 'running')
+                sql`(
+                    ${scheduleTask.status} = 'pending'
+                    OR (
+                        ${scheduleTask.status} = 'waiting_limit'
+                        AND ${scheduleTask.lastSentDate} = ''
+                    )
+                    OR (
+                        ${scheduleTask.status} = 'waiting_mailbox'
+                        AND ${scheduleTask.lastSentDate} = ''
+                    )
+                )`
             ))
             .all();
 
@@ -471,8 +546,10 @@ const scheduleService = {
 
         // 判斷任務狀態
         let finalStatus = 'completed';
+        let finalLastSentDate = today;
         if (cursor < shuffledContactIds.length) {
             finalStatus = stopReason === 'domain_limit' ? 'waiting_limit' : 'waiting_mailbox';
+            finalLastSentDate = ''; // 清空 = 已停、待重置，等 0 點 cron 來重置
         }
 
         // 儲存進度
@@ -483,7 +560,7 @@ const scheduleService = {
                 accountPoolIndex: poolIdx % accountPool.length,
                 accountId: accountPool[poolIdx % accountPool.length],
                 sentToday: newSentToday,
-                lastSentDate: today,
+                lastSentDate: finalLastSentDate,
                 sentCount: (task.sentCount || 0) + sessionSent,
                 failedCount: (task.failedCount || 0) + sessionFailed,
                 status: finalStatus,

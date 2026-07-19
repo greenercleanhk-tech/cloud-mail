@@ -32,7 +32,7 @@ not_found_handling = "single-page-application"
 run_worker_first = true
 
 [triggers]
-crons = ["* * * * *", "0 16 * * *"]	#每分鐘處理排程 + 每天16:00清理任務
+crons = ["* * * * *", "0 0 * * *", "0 16 * * *"]	#每分鐘處理排程 + 每天16:00清理任務
 
 
 [vars]
