@@ -374,7 +374,8 @@ onUnmounted(() => {
   clearInterval(timer)
 })
 
-getEmailList()
+// 延遲到下一個 tick，確保父層已設好 accountStore.currentAccount
+nextTick(() => getEmailList())
 
 window.onresize = () => {
   isMobile.value = innerWidth < 1367
