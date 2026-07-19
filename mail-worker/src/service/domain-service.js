@@ -5,7 +5,11 @@
 import BizError from '../error/biz-error';
 import orm from '../entity/orm';
 import { domain } from '../entity/domain';
-import { eq, and, sql, count } from 'drizzle-orm';
+import { account } from '../entity/account';
+import { email } from '../entity/email';
+import { contact } from '../entity/contact';
+import { eq, and, sql, count, like } from 'drizzle-orm';
+import { emailConst } from '../const/entity-const';
 import { t } from '../i18n/i18n';
 
 const domainService = {
@@ -181,10 +185,86 @@ const domainService = {
      * @returns {Promise<Object>} 統計信息
      */
     async getStats(c, domainId) {
-        // 這裡可以擴展更多統計
+        const domainRow = await this.getById(c, domainId);
+        if (!domainRow) throw new BizError(t('domainNotFound'), 404);
+
+        const domainName = domainRow.domain; // e.g. "psybridgemedical.info"
+
+        // 該域名下所有郵箱
+        const accounts = await orm(c)
+            .select()
+            .from(account)
+            .where(and(eq(account.domainId, domainId), eq(account.isDel, 0)))
+            .all();
+
+        // 該域名所有郵箱的郵箱統計
+        const accountStats = await Promise.all(accounts.map(async (acc) => {
+            // 發送總數（type=SEND）
+            const sentResult = await orm(c)
+                .select({ cnt: count() })
+                .from(email)
+                .where(and(eq(email.accountId, acc.accountId), eq(email.type, emailConst.type.SEND)))
+                .get();
+            const sent = sentResult?.cnt ?? 0;
+
+            // 退信數（status=BOUNCED）
+            const bouncedResult = await orm(c)
+                .select({ cnt: count() })
+                .from(email)
+                .where(and(eq(email.accountId, acc.accountId), eq(email.status, emailConst.status.BOUNCED)))
+                .get();
+            const bounced = bouncedResult?.cnt ?? 0;
+
+            // 開啟數（status=DELIVERED，表示已送達但未退回 = 疑似開啟；實際開啟追蹤需要追蹤像素）
+            const deliveredResult = await orm(c)
+                .select({ cnt: count() })
+                .from(email)
+                .where(and(eq(email.accountId, acc.accountId), eq(email.status, emailConst.status.DELIVERED)))
+                .get();
+            const delivered = deliveredResult?.cnt ?? 0;
+
+            // 健康度 = (sent - bounced) / sent，100% 為完美
+            const health = sent > 0 ? Math.round(((sent - bounced) / sent) * 100) : 100;
+
+            // 該郵箱地址的退訂人數（contacts 表中該郵箱作為發件來源的退訂數）
+            // 注意：contacts.is_unsubscribed 是按 email 標記的
+            const unsubResult = await orm(c)
+                .select({ cnt: count() })
+                .from(contact)
+                .where(and(
+                    like(contact.email, `%@${domainName}`),
+                    eq(contact.isUnsubscribed, 1)
+                ))
+                .get();
+            const unsubscribed = unsubResult?.cnt ?? 0;
+
+            return {
+                accountId: acc.accountId,
+                email: acc.email,
+                name: acc.name,
+                status: acc.status,
+                sent,
+                delivered,
+                bounced,
+                unsubscribed,
+                health
+            };
+        }));
+
+        // 域名級統計
+        const totalSent = accountStats.reduce((sum, a) => sum + a.sent, 0);
+        const totalBounced = accountStats.reduce((sum, a) => sum + a.bounced, 0);
+        const totalUnsubscribed = accountStats.reduce((sum, a) => sum + a.unsubscribed, 0);
+        const domainHealth = totalSent > 0 ? Math.round(((totalSent - totalBounced) / totalSent) * 100) : 100;
+
         return {
             domainId,
-            status: 'ok'
+            domain: domainName,
+            health: domainHealth,
+            totalSent,
+            totalBounced,
+            totalUnsubscribed,
+            accounts: accountStats
         };
     }
 };
