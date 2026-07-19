@@ -94,6 +94,7 @@
         <el-table ref="tableRef" :data="contacts" stripe style="width: 100%" v-loading="loading" @selection-change="handleSelectionChange">
           <el-table-column type="selection" width="40" />
           <el-table-column prop="name" :label="$t('name')" min-width="120" />
+          <el-table-column prop="email" :label="$t('email')" min-width="180" show-overflow-tooltip />
           <el-table-column :label="$t('group')" width="120">
             <template #default="{ row }">
               {{ getGroupName(row.groupId) }}
