@@ -48,27 +48,27 @@
 
       <el-table-column prop="createTime" :label="$t('createTime')" width="150" />
 
-      <el-table-column :label="$t('mailboxCount')" width="72" align="center">
+      <el-table-column :label="$t('mailboxCount')" width="90" align="center">
         <template #default="{ row }">
           <el-tag type="info" size="small">{{ row.mailboxCount ?? 0 }}</el-tag>
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('activeJobCount')" width="72" align="center">
+      <el-table-column :label="$t('activeJobCount')" width="90" align="center">
         <template #default="{ row }">
           <el-tag v-if="(row.activeJobCount ?? 0) > 0" type="warning" size="small">{{ row.activeJobCount }}</el-tag>
           <span v-else style="color:#c0c4cc">0</span>
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('completedJobCount')" width="72" align="center">
+      <el-table-column :label="$t('completedJobCount')" width="90" align="center">
         <template #default="{ row }">
           <el-tag v-if="(row.completedJobCount ?? 0) > 0" type="success" size="small">{{ row.completedJobCount }}</el-tag>
           <span v-else style="color:#c0c4cc">0</span>
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('actions')" width="220" fixed="right">
+      <el-table-column :label="$t('actions')" width="180" fixed="right">
         <template #default="{ row }">
           <el-button link type="primary" @click="handleEdit(row)">{{ $t('edit') }}</el-button>
           <el-button link type="success" @click="handleMailboxes(row)">{{ $t('mailboxes') }}</el-button>
