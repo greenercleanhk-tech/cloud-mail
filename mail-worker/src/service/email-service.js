@@ -271,12 +271,14 @@ const emailService = {
 
 		}
 
-		// 自動追加退訂連結（直接發送也需追加�?
+		// 自動追加退訂連結（直接發送也需追加）
 		if (receiveEmail && receiveEmail.length > 0 && !allInternal) {
 			const token = base64Encode(receiveEmail[0]);
 			const unsubLink = `${c.env.KV_URL || 'https://' + domain}/unsubscribe?token=${token}`;
-			html += `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
-				<a href="${unsubLink}" style="color:#999;text-decoration:underline;">退訂電子報</a>
+			html += `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;line-height:1.8;">
+				如閣下不想再收到我們的電郵，請按這裡一鍵回覆退訂。<br/>
+				If you do not wish to receive further email messages from us,<br/>
+				please <a href="${unsubLink}" style="color:#999;text-decoration:underline;">click here to reply and unsubscribe</a>.
 			</div>`;
 		}
 
