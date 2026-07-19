@@ -4,13 +4,15 @@
  * 2026-07-19：Drizzle-orm/d1 的 .run() 返回值不稳定（result.ok 在某些版本可能是 method 而非 property）
  * 全面改用原生 D1 API：c.env.db.prepare(sql).bind(...).run()
  *
- * D1 變量上限 999（SQLite 限制）
- * BATCH_SIZE = 10 → 每批 10×N 變量，869 條需 87 批次，CPU 時間安全
+ * D1 限制：
+ * - 每請求最多 1000 條語句 → 用 db.batch() 合併，每批次多條 INSERT
+ * - 每語句最多 999 個 ? 佔位符 → contacts 表每行 9 個欄位，每批次最多 111 行
+ *   (111 × 9 = 999)
  */
-export const BATCH_SIZE = 10;
+export const BATCH_SIZE = 111; // 9 欄位 × 111 行 = 999 個 ?，觸及 SQLite 上限
 
 /**
- * 原生 D1 分批插入
+ * 原生 D1 分批插入（使用 db.batch 合併多條 INSERT 為一次請求）
  * @param {Fetcher} c - Cloudflare Workers context
  * @param {string} tableName - 表名（DB 列名，snake_case）
  * @param {string[]} columns - DB 列名數組（與 VALUES 順序對應）
@@ -27,25 +29,21 @@ export async function batchInsertNative(c, tableName, columns, values, extra = {
 	let inserted = 0;
 	for (let i = 0; i < values.length; i += BATCH_SIZE) {
 		const batch = values.slice(i, i + BATCH_SIZE);
-		for (const row of batch) {
-			// 按 columns 順序湊 params：extra 有的用 extra，否則用 row（camelCase → snake_case fallback）
+
+		// 將整批 INSERT 合併為一個 db.batch() 呼叫（只算 1 條語句）
+		const stmts = batch.map(row => {
 			const params = columns.map(col => {
-				if (col in extra) {
-					const v = extra[col];
-					console.log(`[batchInsertNative] col=${col} from extra: ${v}`);
-					return v;
-				}
+				if (col in extra) return extra[col];
 				const camelKey = col.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-				const v = row[camelKey] ?? row[col] ?? null;
-				console.log(`[batchInsertNative] col=${col} from row (camelKey=${camelKey}): ${v}`);
-				return v;
+				return row[camelKey] ?? row[col] ?? null;
 			});
-			console.log(`[batchInsertNative] sql=${sql}`);
-			console.log(`[batchInsertNative] params.length=${params.length}, expected=${columns.length}`);
-			console.log(`[batchInsertNative] params=${JSON.stringify(params)}`);
-			const result = await c.env.db.prepare(sql).bind(...params).run();
-			if (!result.success) {
-				throw new Error(`D1 insert failed: ${result.error} | row: ${JSON.stringify(row)}`);
+			return c.env.db.prepare(sql).bind(...params);
+		});
+
+		const results = await c.env.db.batch(stmts);
+		for (let j = 0; j < results.length; j++) {
+			if (!results[j].success) {
+				throw new Error(`D1 insert failed at row ${i + j}: ${results[j].error}`);
 			}
 			inserted++;
 		}
