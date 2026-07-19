@@ -31,7 +31,7 @@
           >
             <Icon icon="carbon:user" width="18" />
             <span>{{ $t('allContacts') }}</span>
-            <span class="count">{{ totalCount }}</span>
+            <span class="count">{{ allTotalCount }}</span>
           </div>
           <div
             v-for="group in groups"
@@ -253,6 +253,7 @@ const groupSubmitting = ref(false);
 const contacts = ref([]);
 const groups = ref([]);
 const totalCount = ref(0);
+const allTotalCount = ref(0); // 獨立：永遠代表 ALL 總數，不受 group 切換影響
 const page = ref(1);
 const keyword = ref('');
 const selectedGroupId = ref(0);
@@ -293,7 +294,9 @@ async function loadContacts() {
       page: page.value
     });
     contacts.value = res?.list || res || [];
-    // selectedGroupId === 0 時用 allCount（後端計算的全部總數），否則用 total（該組的數）
+    // allTotalCount：每次 API 都返回 allCount，永遠代表 ALL 總數
+    allTotalCount.value = res?.allCount || 0;
+    // totalCount：受 groupId 影響，給右側分頁和刪除全部用
     totalCount.value = selectedGroupId.value === 0 ? (res?.allCount || 0) : (res?.total || 0);
   } catch (e) {
     ElMessage.error('載入失敗');
