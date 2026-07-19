@@ -63,6 +63,13 @@ const scheduleService = {
 
         if (!job) return null;
 
+        // 獲取模板名稱
+        let templateName = '#' + job.templateId;
+        if (job.templateId) {
+            const tmpl = await orm(c).select().from(emailTemplate).where(eq(emailTemplate.templateId, job.templateId)).get();
+            if (tmpl) templateName = tmpl.name;
+        }
+
         const tasks = await orm(c)
             .select({ task: scheduleTask, account: account })
             .from(scheduleTask)
@@ -123,6 +130,7 @@ const scheduleService = {
             tasks: formattedTasks,
             domainDisplay: domainRow?.domain || '-',
             dailyLimit,
+            templateName,
         };
     },
 

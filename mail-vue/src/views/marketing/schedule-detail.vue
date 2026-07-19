@@ -24,7 +24,7 @@
             <div class="job-meta">
               <el-tag type="info" size="small">{{ job.domainDisplay }}</el-tag>
               <span class="meta-sep">|</span>
-              <span>{{ $t('sendTemplate') }}: {{ job.templateId }}</span>
+              <span>{{ $t('sendTemplate') }}: {{ job.templateName || ('#' + job.templateId) }}</span>
               <span class="meta-sep">|</span>
               <span>{{ $t('totalRecipients') }}: {{ job.totalRecipients }}</span>
               <span class="meta-sep">|</span>
@@ -50,11 +50,11 @@
         <!-- 已發/失敗統計 -->
         <div class="stat-row">
           <div class="stat-item">
-            <div class="stat-value success">{{ job.sentCount ?? (tasks[0]?.sentCount ?? 0) }}</div>
+            <div class="stat-value success">{{ totalSent }}</div>
             <div class="stat-label">{{ $t('sentCount') }}</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value danger">{{ job.failedCount ?? (tasks[0]?.failedCount ?? 0) }}</div>
+            <div class="stat-value danger">{{ totalFailed }}</div>
             <div class="stat-label">{{ $t('failedCount') }}</div>
           </div>
           <div class="stat-item">
@@ -154,7 +154,9 @@ const loading2 = ref(false)
 const job = ref(null)
 
 const tasks = computed(() => job.value?.tasks || [])
-const jobCursor = computed(() => tasks.value[0]?.cursor || 0)
+const jobCursor = computed(() => tasks.value.reduce((sum, t) => sum + (t.cursor || 0), 0))
+const totalSent = computed(() => tasks.value.reduce((sum, t) => sum + (t.sentCount || 0), 0))
+const totalFailed = computed(() => tasks.value.reduce((sum, t) => sum + (t.failedCount || 0), 0))
 const overallPct = computed(() => {
   const total = job.value?.totalRecipients || 0
   if (!total) return 0

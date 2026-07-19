@@ -387,16 +387,29 @@ function getGroupName(groupId) {
 }
 
 // ========== CSV 導入 ==========
-function handleFileChange(file) {
+function handleFileChange(uploadFile, uploadFiles) {
+  // file.raw 是 Element Plus 封裝的 raw File 對象
+  const rawFile = uploadFile.raw || uploadFile.rawFile || uploadFile;
   const reader = new FileReader();
   reader.onload = (e) => {
-    const text = e.target.result.replace(/^\uFEFF/, ''); // 移除 UTF-8 BOM
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length === 0) return;
+    let text = e.target.result;
+    // 移除常見 BOM：UTF-8 (\uFEFF)、UTF-16
+    if (text.charCodeAt(0) === 0xFEFF || text.charCodeAt(0) === 0xFFFE) {
+      text = text.slice(1);
+    }
+    text = text.replace(/^\uFEFF/, '');
 
-    // 嘗試解析 CSV
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length === 0) {
+      ElMessage.warning('CSV 文件內容為空');
+      importPreview.value = [];
+      importInvalidCount.value = 0;
+      importForm.rawContacts = [];
+      return;
+    }
+
+    // 簡單 CSV 解析：split by comma, handle quoted fields
     const rows = lines.map(line => {
-      // 簡單 CSV 解析：split by comma, handle quoted fields
       const cells = [];
       let current = '';
       let inQuote = false;
@@ -443,8 +456,19 @@ function handleFileChange(file) {
     importForm.rawContacts = parsed;
     importPreview.value = parsed.slice(0, 20);
     importInvalidCount.value = invalid;
+
+    if (parsed.length === 0 && invalid > 0) {
+      ElMessage.warning(`CSV 中所有 ${invalid} 行都無法識別，請確認格式為：姓名,郵箱,備注`);
+    } else if (parsed.length === 0) {
+      ElMessage.warning('CSV 中找不到任何有效郵箱');
+    }
   };
-  reader.readAsText(file.raw, 'UTF-8');
+  reader.onerror = () => {
+    ElMessage.error('文件讀取失敗，請確認是有效的 CSV 文件');
+    importPreview.value = [];
+    importForm.rawContacts = [];
+  };
+  reader.readAsText(rawFile, 'UTF-8');
 }
 
 function handleFileRemove() {

@@ -31,7 +31,7 @@
         <!-- 通訊錄 -->
         <el-menu-item
           @click="router.push({ name: 'contacts' })"
-          :class="{ 'choose-item': route.meta.name === 'contact' }"
+          :class="{ 'choose-item': route.meta.name === 'contacts' }"
         >
           <Icon icon="carbon:user-multiple" width="20" height="20" />
           <span class="menu-name" style="margin-left: 21px">{{ $t('contacts') }}</span>
