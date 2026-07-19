@@ -6,7 +6,7 @@ import orm from '../entity/orm';
 import { contact, contactGroup } from '../entity/contact';
 import { and, eq, like, or, sql, count } from 'drizzle-orm';
 import { t } from '../i18n/i18n';
-import { batchInsert } from '../utils/batch-utils';
+import { batchInsertNative } from '../utils/batch-utils';
 
 const contactService = {
 
@@ -137,10 +137,18 @@ const contactService = {
         }));
 
         try {
-            await batchInsert(
-                batch => orm(c).insert(contact).values(batch).run(),
-                values
-            );
+            // 使用原生 D1 API，列名為 DB 列名（非 entity camelCase）
+            await batchInsertNative(c, 'contacts', [
+                'name',
+                'email',
+                'group_id',
+                'domain_id',
+                'user_id',
+                'remark',
+                'is_unsubscribed',
+                'create_time',
+                'is_del'
+            ], values, domainId || 1, userId);
         } catch (e) {
             console.error(`[batchAdd] 插入失敗: ${e.message}`);
             throw e;
