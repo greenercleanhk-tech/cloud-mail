@@ -388,8 +388,8 @@ function getGroupName(groupId) {
 
 // ========== CSV 導入 ==========
 function handleFileChange(uploadFile, uploadFiles) {
-  // file.raw 是 Element Plus 封裝的 raw File 對象
   const rawFile = uploadFile.raw || uploadFile.rawFile || uploadFile;
+  console.debug('[CSV Import] rawFile type:', rawFile?.constructor?.name, 'size:', rawFile?.size);
   const reader = new FileReader();
   reader.onload = (e) => {
     let text = e.target.result;
@@ -408,7 +408,15 @@ function handleFileChange(uploadFile, uploadFiles) {
       return;
     }
 
-    // 簡單 CSV 解析：split by comma, handle quoted fields
+    // 自動檢測分隔符：tab（Excel導出常見）> 逗號 > 分號
+    const firstLine = lines[0];
+    const tabCnt = (firstLine.match(/\t/g) || []).length;
+    const commaCnt = (firstLine.match(/,/g) || []).length;
+    const semiCnt = (firstLine.match(/;/g) || []).length;
+    const delimiter = tabCnt > 0 ? '\t' : (commaCnt > 0 ? ',' : (semiCnt > 0 ? ';' : ','));
+    console.debug(`[CSV Import] 分隔符: "${delimiter === '\t' ? 'TAB' : delimiter}", 行數: ${lines.length}, 首行: "${firstLine.substring(0, 80)}"`);
+
+    // 解析：split by delimiter, handle quoted fields
     const rows = lines.map(line => {
       const cells = [];
       let current = '';
@@ -417,7 +425,7 @@ function handleFileChange(uploadFile, uploadFiles) {
         const ch = line[i];
         if (ch === '"') {
           inQuote = !inQuote;
-        } else if (ch === ',' && !inQuote) {
+        } else if (ch === delimiter && !inQuote) {
           cells.push(current.trim());
           current = '';
         } else {
