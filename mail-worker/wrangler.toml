@@ -43,5 +43,5 @@ crons = ["* * * * *", "0 0 * * *", "0 16 * * *"]	#每分鐘處理排程 + 每天
 #admin = ""				#管理员的邮箱	示例: admin@example.com
 #jwt_secret = ""			#jwt令牌的密钥,随便填一串字符串
 
-[build]
-command = "cd ../mail-vue && set NODE_PATH=../node_modules && npx vite build --mode release"
+# [build]
+# command = "cd ../mail-vue && set NODE_PATH=../node_modules && npx vite build --mode release"

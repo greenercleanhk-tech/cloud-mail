@@ -639,11 +639,14 @@ async function handleImport() {
       remark: c.remark,
       groupId: importForm.groupId
     }));
-    await contactBatchAdd({
+    const res = await contactBatchAdd({
       contacts,
       domainId: domainStore.currentDomainId
     });
-    ElMessage.success(`成功導入 ${contacts.length} 個聯絡人`);
+    const dupInfo = (res?.csvDup || res?.dbDup)
+      ? `（跳過 CSV 重複: ${res.csvDup || 0}，已存在: ${res.dbDup || 0}）`
+      : '';
+    ElMessage.success(`成功導入 ${res?.count ?? contacts.length} 個聯絡人${dupInfo}`);
     // 等待消息顯示後再關閉對話框
     await new Promise(r => setTimeout(r, 800));
     showImportDialog.value = false;

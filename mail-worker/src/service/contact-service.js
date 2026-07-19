@@ -112,6 +112,7 @@ const contactService = {
     /**
      * 批量添加聯絡人
      * SQLite 有 999 SQL 變量上限，分批處理避免爆掉
+     * CSV 內部重複 + 資料庫已存在的郵箱都會被過濾掉
      */
     async batchAdd(c, params, userId) {
         const { contacts, domainId } = params;
@@ -120,29 +121,60 @@ const contactService = {
             throw new BizError(t('contactsRequired'));
         }
 
+        const domainIdNum = domainId || 1;
         console.log(`[batchAdd] 收到 ${contacts.length} 條聯絡人`);
 
-        // 收集 unique groupIds 供日誌確認
-        const groupIds = [...new Set(contacts.map(c => c.groupId))];
-        console.log(`[batchAdd] 這些聯絡人的 groupIds: ${JSON.stringify(groupIds)}`);
+        // ---------- 第一步：CSV 內部去重（保留第一個） ----------
+        const seenEmail = new Set();
+        const csvUnique = [];
+        let csvDupCount = 0;
+        for (const item of contacts) {
+            const email = (item.email || '').toLowerCase().trim();
+            if (!email) continue;
+            if (seenEmail.has(email)) {
+                csvDupCount++;
+                continue;
+            }
+            seenEmail.add(email);
+            csvUnique.push({
+                name: item.name || email.split('@')[0],
+                email,
+                groupId: Number(item.groupId) || 0,
+                domainId: domainIdNum,
+                userId,
+                remark: item.remark || '',
+                isDel: 0
+            });
+        }
+        console.log(`[batchAdd] CSV 內部去重後: ${csvUnique.length} 條（重複: ${csvDupCount} 條）`);
 
-        const values = contacts.map(item => ({
-            name: item.name || item.email.split('@')[0],
-            email: item.email,
-            groupId: Number(item.groupId) || 0,
-            domainId: domainId || 1,
-            userId,
-            remark: item.remark || '',
-            isDel: 0
-        }));
+        // ---------- 第二步：查詢該 domain/user 下已存在的郵箱 ----------
+        const existingRows = await orm(c).select({ email: contact.email })
+            .from(contact)
+            .where(and(
+                eq(contact.domainId, domainIdNum),
+                eq(contact.userId, userId),
+                eq(contact.isDel, 0)
+            )).all();
+        const existingEmailSet = new Set(existingRows.map(r => r.email.toLowerCase()));
+        console.log(`[batchAdd] 資料庫已存在: ${existingEmailSet.size} 個郵箱`);
+
+        // ---------- 第三步：過濾已存在的 ----------
+        const toInsert = csvUnique.filter(item => !existingEmailSet.has(item.email.toLowerCase()));
+        const dbDupCount = csvUnique.length - toInsert.length;
+        console.log(`[batchAdd] 實際寫入: ${toInsert.length} 條（資料庫重複: ${dbDupCount} 條）`);
+
+        if (toInsert.length === 0) {
+            return { count: 0, csvDup: csvDupCount, dbDup: dbDupCount, msg: '所有郵箱均已存在或為重複' };
+        }
 
         try {
-            await batchInsertContacts(c, values, domainId || 1, userId);
+            await batchInsertContacts(c, toInsert, domainIdNum, userId);
         } catch (e) {
             console.error(`[batchAdd] 插入失敗: ${e.message}`);
             throw e;
         }
-        return { count: values.length };
+        return { count: toInsert.length, csvDup: csvDupCount, dbDup: dbDupCount };
     },
 
     /**
