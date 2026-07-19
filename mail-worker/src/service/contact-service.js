@@ -149,8 +149,8 @@ const contactService = {
         }
         console.log(`[batchAdd] CSV 內部去重後: ${csvUnique.length} 條（重複: ${csvDupCount} 條）`);
 
-        // ---------- 第二步：流式去重，每 500 條查一次資料庫 ----------
-        const DEDUP_BATCH = 500;
+        // ---------- 第二步：流式去重，每批最多 80 個郵箱查一次資料庫 ----------
+        const DEDUP_BATCH = 80;
         const toInsert = [];
         let dbDupCount = 0;
         let checkedCount = 0;
