@@ -117,13 +117,14 @@ const scheduleService = {
             throw new BizError(t('contactGroupNotFound'));
         }
 
-        // 獲取該域名下所有帳號
+        // 獲取該域名下所有帳號（僅啟用狀態）
         const accounts = await orm(c)
             .select()
             .from(account)
             .where(and(
                 eq(account.domainId, Number(domainId)),
-                eq(account.isDel, 0)
+                eq(account.isDel, 0),
+                eq(account.status, 'active')
             ))
             .all();
 
@@ -304,7 +305,7 @@ const scheduleService = {
             .where(eq(account.accountId, task.accountId))
             .get();
 
-        if (!accountRow || !template || contacts.length === 0) {
+        if (!accountRow || accountRow.status !== 'active' || !template || contacts.length === 0) {
             await orm(c)
                 .update(scheduleTask)
                 .set({ status: 'completed', finishedAt: dayjs().format('YYYY-MM-DD HH:mm:ss') })
