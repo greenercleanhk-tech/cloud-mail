@@ -1,6 +1,7 @@
 import orm from '../entity/orm';
 import { att } from '../entity/att';
 import { and, eq, isNull, inArray, desc } from 'drizzle-orm';
+import { batchInsert } from '../utils/batch-utils';
 import r2Service from './r2-service';
 import constant from '../const/constant';
 import fileUtils from '../utils/file-utils';
@@ -8,6 +9,7 @@ import { attConst } from '../const/entity-const';
 import { parseHTML } from 'linkedom';
 import { v4 as uuidv4 } from 'uuid';
 import domainUtils from '../utils/domain-uitls';
+import { batchInsert } from '../utils/batch-utils';
 import settingService from "./setting-service";
 
 const attService = {
@@ -31,8 +33,10 @@ const attService = {
 
 		}
 
-		await orm(c).insert(att).values(attachments).run();
-	},
+		await batchInsert(
+			batch => orm(c).insert(att).values(batch).run(),
+			attachments
+		);
 
 	list(c, params, userId) {
 		const { emailId } = params;
@@ -162,7 +166,10 @@ const attService = {
 			attDataList.push(attData);
 		}
 
-		await orm(c).insert(att).values(attDataList).run();
+		await batchInsert(
+			batch => orm(c).insert(att).values(batch).run(),
+			attDataList
+		);
 
 		for (let att of attList) {
 			await r2Service.putObj(c, att.key, att.buff, {
@@ -192,7 +199,10 @@ const attService = {
 			delete attData.buff;
 		}
 
-		await orm(c).insert(att).values(attDataList).run();
+		await batchInsert(
+			batch => orm(c).insert(att).values(batch).run(),
+			attDataList
+		);
 
 	},
 

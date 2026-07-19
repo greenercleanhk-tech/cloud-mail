@@ -6,6 +6,7 @@ import orm from '../entity/orm';
 import { contact, contactGroup } from '../entity/contact';
 import { and, eq, like, or, sql, count } from 'drizzle-orm';
 import { t } from '../i18n/i18n';
+import { batchInsert } from '../utils/batch-utils';
 
 const contactService = {
 
@@ -116,11 +117,10 @@ const contactService = {
             isDel: 0
         }));
 
-        // 每批 100 條，100×7=700 個變量，遠低於 SQLite 上限 999
-        const BATCH = 100;
-        for (let i = 0; i < values.length; i += BATCH) {
-            await orm(c).insert(contact).values(values.slice(i, i + BATCH)).run();
-        }
+        await batchInsert(
+            batch => orm(c).insert(contact).values(batch).run(),
+            values
+        );
         return { count: values.length };
     },
 
