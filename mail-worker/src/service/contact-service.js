@@ -107,6 +107,8 @@ const contactService = {
             throw new BizError(t('contactsRequired'));
         }
 
+        console.log(`[batchAdd] 收到 ${contacts.length} 條聯絡人，將分 ${Math.ceil(contacts.length / 100)} 批插入`);
+
         const values = contacts.map(item => ({
             name: item.name || item.email.split('@')[0],
             email: item.email,
@@ -117,10 +119,15 @@ const contactService = {
             isDel: 0
         }));
 
-        await batchInsert(
-            batch => orm(c).insert(contact).values(batch).run(),
-            values
-        );
+        try {
+            await batchInsert(
+                batch => orm(c).insert(contact).values(batch).run(),
+                values
+            );
+        } catch (e) {
+            console.error(`[batchAdd] 插入失敗: ${e.message}`);
+            throw e;
+        }
         return { count: values.length };
     },
 
